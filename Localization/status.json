@@ -3,10 +3,11 @@
   "note": "Key-level overrides and review exceptions. Translation memory is authoritative for reviewed source-text translations.",
   "review_batches": {
     "xaml_2_7_0": "verified",
-    "csharp_2_7_0_batches_1_3": "reviewed",
-    "manifest_2_7_0": "reviewed",
-    "csharp_2_7_0_batch_4": "rebuild_required",
-    "interpolated_csharp": "in_progress",
+    "csharp_2_7_0_batches_1_3": "verified",
+    "manifest_2_7_0": "verified",
+    "csharp_2_7_0_batch_4": "verified",
+    "interpolated_csharp": "verified",
+    "line_ending_normalization": "pending_ci",
     "merge_state": "merged"
   }
 }
