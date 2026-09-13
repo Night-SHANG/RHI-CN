@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PYTHONUTF8: '1'
   INNO_SETUP_VERSION: '6.7.1'
   INNO_ZH_COMMIT: '1ff90acc4ed4aee82b1cda43253243deee3daed4'
 
