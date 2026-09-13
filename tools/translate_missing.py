@@ -7,6 +7,10 @@ import re
 import urllib.error
 import urllib.request
 from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.resw import read_resw
 from tools.translation_memory import merge_machine_translations
@@ -39,8 +43,7 @@ def parse_translation_response(raw: str, allowed_sources: set[str]) -> dict[str,
     for row in data:
         if not isinstance(row, dict):
             continue
-        source = row.get("source")
-        translation = row.get("translation")
+        source, translation = row.get("source"), row.get("translation")
         if source not in allowed_sources or not isinstance(translation, str) or not translation.strip():
             continue
         result[source] = translation.strip()
@@ -57,11 +60,9 @@ def _translate_batch(sources: list[str], glossary: dict, api_url: str, api_key: 
     )
     user = json.dumps({"glossary": glossary, "strings": sources}, ensure_ascii=False)
     payload = json.dumps({"model": model, "temperature": 0, "messages": [
-        {"role": "system", "content": system}, {"role": "user", "content": user}]},
-        ensure_ascii=False).encode("utf-8")
+        {"role": "system", "content": system}, {"role": "user", "content": user}]}, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(api_url, data=payload, headers={
-        "Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
-        "User-Agent": "RHI-CN-localization/1.0"}, method="POST")
+        "Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "User-Agent": "RHI-CN-localization/1.0"}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=120) as response:
             body = json.loads(response.read().decode("utf-8"))
@@ -90,7 +91,6 @@ def main() -> int:
     args = ap.parse_args()
     if args.batch_size < 1:
         raise SystemExit("--batch-size must be >= 1")
-
     en_path = args.source / "RenoDXCommander" / "Strings" / "en-US" / "Resources.resw"
     exact_path = args.repo / "Localization" / "zh-CN" / "Resources.resw"
     memory_path = args.repo / "Localization" / "translation-memory.json"
@@ -103,17 +103,15 @@ def main() -> int:
     print(json.dumps({"missing_count": len(missing), "missing": missing}, ensure_ascii=False, indent=2))
     if not missing or args.dry_run:
         return 0
-
     api_url = os.getenv("TRANSLATION_API_URL", "").strip()
     api_key = os.getenv("TRANSLATION_API_KEY", "").strip()
     model = os.getenv("TRANSLATION_MODEL", "").strip()
     if not (api_url and api_key and model):
         print("Translation API is not configured; keeping English fallback.")
         return 0
-
     additions: dict[str, str] = {}
     for offset in range(0, len(missing), args.batch_size):
-        batch = missing[offset: offset + args.batch_size]
+        batch = missing[offset:offset + args.batch_size]
         additions.update(_translate_batch(batch, glossary, api_url, api_key, model))
     merged = merge_machine_translations(memory, additions)
     memory_path.parent.mkdir(parents=True, exist_ok=True)
