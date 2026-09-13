@@ -1,0 +1,21 @@
+name: Request formal release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release-request.json
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch formal upstream sync and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run upstream-sync.yml --repo "$GITHUB_REPOSITORY" --ref main
