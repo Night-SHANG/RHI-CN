@@ -177,7 +177,7 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
         if text != original:
             path.write_text(text, encoding="utf-8")
         english.update(entries)
-        unhandled.extend(scan_csharp_unhandled(original, rel))
+        unhandled.extend(scan_csharp_unhandled(text, rel))
 
     manifest_path = source_root / "manifest.json"
     manifest_visible: list[str] = []
