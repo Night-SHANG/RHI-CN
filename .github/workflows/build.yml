@@ -1,0 +1,111 @@
+name: Build Windows package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rhi-cn-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  INNO_SETUP_VERSION: '6.7.1'
+  INNO_ZH_COMMIT: '1ff90acc4ed4aee82b1cda43253243deee3daed4'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run repository tests
+        run: python -m pytest -q
+      - name: Clone current RHI main
+        shell: pwsh
+        run: git clone --depth 1 https://github.com/RankFTW/RHI.git upstream
+      - name: Materialize localization overlay
+        run: python tools/materialize.py --source upstream --repo .
+      - name: Validate resource parity
+        run: python tools/check_localization.py --source upstream --repo .
+      - name: Run upstream tests
+        shell: pwsh
+        run: dotnet test upstream\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
+      - name: Resolve package version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content 'upstream\RenoDXCommander\RenoDXCommander.csproj'
+          $assembly = @($project.Project.PropertyGroup.AssemblyVersion | Where-Object { $_ })[0]
+          if (-not $assembly) { throw 'AssemblyVersion missing from upstream project' }
+          $version = $assembly -replace '\.0$', ''
+          "RHI_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Patch official publish script
+        shell: pwsh
+        run: python tools\patch_publish.py upstream\publish.bat "$env:GITHUB_WORKSPACE\publish"
+      - name: Run official publish script
+        shell: cmd
+        working-directory: upstream
+        run: publish.bat
+      - name: Verify published binaries and external resources
+        shell: pwsh
+        run: |
+          $required = @(
+            "$env:GITHUB_WORKSPACE\publish\RHI.exe",
+            "$env:GITHUB_WORKSPACE\publish\RHI.DropHelper.exe",
+            "$env:GITHUB_WORKSPACE\publish\Strings\en-US\Resources.resw",
+            "$env:GITHUB_WORKSPACE\publish\Strings\zh-CN\Resources.resw"
+          )
+          foreach ($path in $required) { if (-not (Test-Path $path)) { throw "Required publish output missing: $path" } }
+      - name: Create portable archive
+        shell: pwsh
+        run: |
+          $zip = "$env:GITHUB_WORKSPACE\RHI-CN-$env:RHI_VERSION-portable.zip"
+          Compress-Archive -Path "$env:GITHUB_WORKSPACE\publish\*" -DestinationPath $zip -Force
+      - name: Fetch pinned Simplified Chinese Inno language file
+        shell: pwsh
+        run: |
+          $dir = 'upstream\Installer\Languages'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $url = "https://raw.githubusercontent.com/kira-96/Inno-Setup-Chinese-Simplified-Translation/$env:INNO_ZH_COMMIT/ChineseSimplified.isl"
+          Invoke-WebRequest -Uri $url -OutFile "$dir\ChineseSimplified.isl"
+          $hash = (Get-FileHash "$dir\ChineseSimplified.isl" -Algorithm SHA256).Hash.ToLowerInvariant()
+          New-Item -ItemType Directory -Force -Path reports | Out-Null
+          @{repository='kira-96/Inno-Setup-Chinese-Simplified-Translation';commit=$env:INNO_ZH_COMMIT;sha256=$hash;inno_setup_version=$env:INNO_SETUP_VERSION} | ConvertTo-Json | Set-Content reports\installer-translation.json -Encoding utf8
+      - name: Patch official installer script
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installer | Out-Null
+          python tools\patch_installer.py 'upstream\RHI Setup.iss' --publish-dir "$env:GITHUB_WORKSPACE\publish" --output-dir "$env:GITHUB_WORKSPACE\installer" --chinese-isl 'Installer\Languages\ChineseSimplified.isl' --version "$env:RHI_VERSION"
+      - name: Install pinned Inno Setup
+        shell: pwsh
+        run: choco install innosetup --version=$env:INNO_SETUP_VERSION -y --no-progress
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($iscc) { & $iscc.Source 'upstream\RHI Setup.iss' } else { & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" 'upstream\RHI Setup.iss' }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $setup = "$env:GITHUB_WORKSPACE\installer\RHI-CN-$env:RHI_VERSION-Setup.exe"
+          if (-not (Test-Path $setup)) { throw "Installer missing: $setup" }
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: RHI-CN-windows-package
+          if-no-files-found: error
+          path: |
+            RHI-CN-*-portable.zip
+            installer/RHI-CN-*-Setup.exe
+            reports/localization-report.json
+            reports/check-report.json
+            reports/installer-translation.json
