@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "note": "Key-level overrides and review exceptions. Translation memory plus Localization/reviewed/*.json are authoritative for reviewed source-text translations.",
-  "current_review": {
-    "upstream_release": "2.7.0",
-    "xaml_reviewed_source_texts": 304,
-    "xaml_fallback_expected": 0,
-    "expected_key_coverage_percent": 52.01,
-    "verification": "pending GitHub Actions Windows build"
+  "note": "Key-level overrides and review exceptions. Translation memory is authoritative for reviewed source-text translations.",
+  "review_batches": {
+    "xaml_2_7_0": "verified",
+    "csharp_2_7_0_batches_1_3": "reviewed",
+    "manifest_2_7_0": "reviewed",
+    "csharp_2_7_0_batch_4": "rebuild_required",
+    "interpolated_csharp": "in_progress"
   }
 }
