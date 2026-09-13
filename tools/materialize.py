@@ -10,9 +10,11 @@ import sys
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.console import print_json
 from tools.resw import read_resw, write_resw, materialize_zh
 from tools.transform import transform_xaml, transform_csharp, scan_csharp_unhandled
 from tools.manifest_scan import extract_user_visible_manifest_text
+from tools.translation_memory import load_translation_memory
 
 PACKAGE_VERSION = "2.3.0"
 LANGUAGE_BUTTON = '''                    <Button x:Name="LanguageBtn" l:Uids.Uid="Toolbar_LanguageButton" Content="Language"
@@ -141,9 +143,11 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
     missing = [str(p) for p in required if not p.exists()]
     if missing:
         raise RuntimeError(f"Required upstream files missing: {missing}")
+
     _patch_csproj(project / "RenoDXCommander.csproj")
     _patch_app(project / "App.xaml.cs")
     _inject_language_button(project / "MainWindow.xaml")
+
     overlay = repo_root / "overlay" / "RenoDXCommander"
     for rel in (Path("Services/LocalizationService.cs"), Path("MainWindow.Localization.cs")):
         src = overlay / rel
@@ -152,7 +156,9 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
         dest = project / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
+
     _patch_manifest_display(project)
+
     english: dict[str, str] = {}
     unhandled: list[dict] = []
     for path in sorted(project.rglob("*.xaml")):
@@ -172,6 +178,7 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
             path.write_text(text, encoding="utf-8")
         english.update(entries)
         unhandled.extend(scan_csharp_unhandled(original, rel))
+
     manifest_path = source_root / "manifest.json"
     manifest_visible: list[str] = []
     if manifest_path.exists():
@@ -179,13 +186,16 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
             manifest_visible = extract_user_visible_manifest_text(json.loads(manifest_path.read_text(encoding="utf-8-sig")))
         except Exception as exc:
             raise RuntimeError(f"Unable to parse manifest.json: {exc}") from exc
+
     for text in manifest_visible:
         english[_data_key(text)] = text
+
     exact = read_resw(repo_root / "Localization" / "zh-CN" / "Resources.resw")
-    memory = _load_json(repo_root / "Localization" / "translation-memory.json", {})
+    memory = load_translation_memory(repo_root / "Localization")
     zh, fallback = materialize_zh(english, exact, memory)
     write_resw(project / "Strings" / "en-US" / "Resources.resw", english)
     write_resw(project / "Strings" / "zh-CN" / "Resources.resw", zh)
+
     reports = repo_root / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     result = {
@@ -206,7 +216,7 @@ def main() -> int:
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
     args = ap.parse_args()
     result = materialize(args.source, args.repo)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print_json(result)
     return 0
 
 if __name__ == "__main__":
