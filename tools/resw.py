@@ -28,6 +28,29 @@ def write_resw(path: Path, entries: dict[str, str]) -> None:
     tree.write(path, encoding="utf-8", xml_declaration=True)
 
 
+def _normalize_line_endings(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _normalized_memory(memory: dict[str, dict]) -> dict[str, dict]:
+    normalized: dict[str, dict] = {}
+    ambiguous: set[str] = set()
+    for source, item in memory.items():
+        key = _normalize_line_endings(source)
+        if key in ambiguous:
+            continue
+        existing = normalized.get(key)
+        if existing is None:
+            normalized[key] = item
+            continue
+        existing_translation = str(existing.get("translation", "")).strip()
+        incoming_translation = str(item.get("translation", "")).strip()
+        if existing_translation != incoming_translation:
+            normalized.pop(key, None)
+            ambiguous.add(key)
+    return normalized
+
+
 def materialize_zh(
     english: dict[str, str],
     exact_zh: dict[str, str],
@@ -35,11 +58,12 @@ def materialize_zh(
 ) -> tuple[dict[str, str], list[str]]:
     zh: dict[str, str] = {}
     fallback: list[str] = []
+    normalized_memory = _normalized_memory(memory)
     for key, source in english.items():
         if key in exact_zh and exact_zh[key].strip():
             zh[key] = exact_zh[key]
             continue
-        item = memory.get(source) or {}
+        item = memory.get(source) or normalized_memory.get(_normalize_line_endings(source)) or {}
         translation = str(item.get("translation", "")).strip()
         if translation:
             zh[key] = translation
