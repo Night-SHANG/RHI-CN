@@ -6,16 +6,23 @@ import sys
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
+from tools.console import print_json
 from tools.resw import read_resw
-from tools.translation_memory import stale_reviewed_entries
+from tools.translation_memory import stale_reviewed_entries, load_translation_memory
 
 
 def _sig(item: dict) -> tuple:
     return (item.get("file"), item.get("text"), item.get("kind"))
 
 
-def evaluate_report(en, zh, fallback_keys, unhandled, baseline_unhandled, stale_reviewed) -> dict:
+def evaluate_report(
+    en: dict[str, str],
+    zh: dict[str, str],
+    fallback_keys: list[str],
+    unhandled: list[dict],
+    baseline_unhandled: list[dict],
+    stale_reviewed: list[str],
+) -> dict:
     en_keys = set(en)
     zh_keys = set(zh)
     baseline = {_sig(x) for x in baseline_unhandled}
@@ -46,28 +53,40 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--update-baseline", action="store_true")
     args = ap.parse_args()
+
     en = read_resw(args.source / "RenoDXCommander" / "Strings" / "en-US" / "Resources.resw")
     zh = read_resw(args.source / "RenoDXCommander" / "Strings" / "zh-CN" / "Resources.resw")
     report_path = args.repo / "reports" / "localization-report.json"
     report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else {}
     inventory_path = args.repo / "Localization" / "inventory" / "main.json"
     inventory = json.loads(inventory_path.read_text(encoding="utf-8")) if inventory_path.exists() else {}
-    memory_path = args.repo / "Localization" / "translation-memory.json"
-    memory = json.loads(memory_path.read_text(encoding="utf-8")) if memory_path.exists() else {}
+    memory = load_translation_memory(args.repo / "Localization")
+
     unhandled = report.get("unhandled_csharp", [])
     manifest_visible = report.get("manifest_visible_text", [])
     if args.update_baseline:
-        inventory = {"upstream_commit": inventory.get("upstream_commit"), "unhandled_csharp": unhandled, "manifest_visible_text": manifest_visible}
+        inventory = {
+            "upstream_commit": inventory.get("upstream_commit"),
+            "unhandled_csharp": unhandled,
+            "manifest_visible_text": manifest_visible,
+        }
         inventory_path.parent.mkdir(parents=True, exist_ok=True)
         inventory_path.write_text(json.dumps(inventory, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    result = evaluate_report(en, zh, report.get("fallback_keys", []), unhandled,
-        inventory.get("unhandled_csharp", []), stale_reviewed_entries(memory))
+
+    result = evaluate_report(
+        en,
+        zh,
+        report.get("fallback_keys", []),
+        unhandled,
+        inventory.get("unhandled_csharp", []),
+        stale_reviewed_entries(memory),
+    )
     baseline_manifest = set(inventory.get("manifest_visible_text", []))
     result["new_manifest_visible_text"] = [x for x in manifest_visible if x not in baseline_manifest]
     out_path = args.repo / "reports" / "check-report.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print_json(result)
     return 1 if should_fail(result, args.strict) else 0
 
 if __name__ == "__main__":
