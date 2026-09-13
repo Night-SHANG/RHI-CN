@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using WinUI3Localizer;
 
 namespace RenoDXCommander.Services;
@@ -35,12 +38,29 @@ public static class UiLanguage
     }
 }
 
+public sealed class LocalizedStringConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        object? raw = value;
+        if (value is ComboBoxItem item)
+            raw = item.Content;
+        return LocalizationService.GetDataString(raw?.ToString());
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotSupportedException();
+}
+
 public static class LocalizationService
 {
     private static string ExecutableDirectory =>
         Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
 
     public static string StringsFolderPath => Path.Combine(ExecutableDirectory, "Strings");
+
+    public static DataTemplate ComboBoxItemTemplate =>
+        (DataTemplate)Application.Current.Resources["LocalizedComboBoxItemTemplate"];
 
     public static string PreferenceFilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -98,7 +118,7 @@ public static class LocalizationService
     public static string GetDataString(string? source)
     {
         if (string.IsNullOrEmpty(source)) return source ?? string.Empty;
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))).ToLowerInvariant()[..16];
+        var hash = System.Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))).ToLowerInvariant()[..16];
         return GetString($"Data_{hash}", source);
     }
 
