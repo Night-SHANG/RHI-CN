@@ -1,0 +1,8 @@
+{
+  "requested_release": "RHI-2.7.0",
+  "verified_commit": "98d3d410e3183e8c996ffb03d733f9d4ee3f498a",
+  "verified_build_run_id": 34754844788,
+  "coverage_percent": 100.0,
+  "fallback_keys": 0,
+  "unhandled_csharp": 0
+}
