@@ -133,3 +133,28 @@ def test_app_resources_define_localized_combobox_item_template(tmp_path: Path):
     app_xaml = (project / "App.xaml").read_text(encoding="utf-8")
     assert "LocalizedStringConverter" in app_xaml
     assert 'x:Key="LocalizedComboBoxItemTemplate"' in app_xaml
+
+
+def test_app_resources_keep_merged_dictionaries_before_resource_items(tmp_path: Path):
+    src = tmp_path / "src"
+    project = _make_source(src)
+    (project / "App.xaml").write_text(
+        '''<?xml version="1.0" encoding="utf-8"?>
+<Application x:Class="RenoDXCommander.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Color x:Key="ExistingColor">#FF000000</Color>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>''', encoding="utf-8")
+    repo = _make_repo(tmp_path)
+    materialize(src, repo)
+    app_xaml = (project / "App.xaml").read_text(encoding="utf-8")
+    merged_end = app_xaml.index('</ResourceDictionary.MergedDictionaries>')
+    converter = app_xaml.index('<services:LocalizedStringConverter')
+    assert merged_end < converter
