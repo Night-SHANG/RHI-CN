@@ -2,6 +2,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from tools.resw import read_resw
 from tools.translation_memory import stale_reviewed_entries
 
@@ -41,7 +46,6 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--update-baseline", action="store_true")
     args = ap.parse_args()
-
     en = read_resw(args.source / "RenoDXCommander" / "Strings" / "en-US" / "Resources.resw")
     zh = read_resw(args.source / "RenoDXCommander" / "Strings" / "zh-CN" / "Resources.resw")
     report_path = args.repo / "reports" / "localization-report.json"
@@ -50,18 +54,12 @@ def main() -> int:
     inventory = json.loads(inventory_path.read_text(encoding="utf-8")) if inventory_path.exists() else {}
     memory_path = args.repo / "Localization" / "translation-memory.json"
     memory = json.loads(memory_path.read_text(encoding="utf-8")) if memory_path.exists() else {}
-
     unhandled = report.get("unhandled_csharp", [])
     manifest_visible = report.get("manifest_visible_text", [])
     if args.update_baseline:
-        inventory = {
-            "upstream_commit": inventory.get("upstream_commit"),
-            "unhandled_csharp": unhandled,
-            "manifest_visible_text": manifest_visible,
-        }
+        inventory = {"upstream_commit": inventory.get("upstream_commit"), "unhandled_csharp": unhandled, "manifest_visible_text": manifest_visible}
         inventory_path.parent.mkdir(parents=True, exist_ok=True)
         inventory_path.write_text(json.dumps(inventory, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
     result = evaluate_report(en, zh, report.get("fallback_keys", []), unhandled,
         inventory.get("unhandled_csharp", []), stale_reviewed_entries(memory))
     baseline_manifest = set(inventory.get("manifest_visible_text", []))
