@@ -1,0 +1,17 @@
+{
+  "Paste API key here...": {
+    "translation": "在此粘贴 API Key...",
+    "state": "reviewed",
+    "source_hash": "48d184796fa08ae4ea0da1ec161b9d910b7880e98069f6708093b345e8fc1391"
+  },
+  "Please paste your API key first. You can find it at nexusmods.com → Settings → API Keys.": {
+    "translation": "请先粘贴你的 API Key。你可以在 nexusmods.com → Settings → API Keys 中找到它。",
+    "state": "reviewed",
+    "source_hash": "d9b23da323986a7c033f2e0fdba7057c2cb6e29c6a77f0b380c234ac34d59c31"
+  },
+  "Invalid API key or network error.": {
+    "translation": "API Key 无效或网络错误。",
+    "state": "reviewed",
+    "source_hash": "353b0be75ab6d129b0652ddb8b567b715bba862170a7cbb6d6affa87ff83c3ad"
+  }
+}
