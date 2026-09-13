@@ -149,7 +149,7 @@ def _inject_language_button(path: Path) -> None:
         insert_pos = line_start
         indent = prefix
     snippet = "\n".join((indent + line if line else line) for line in LANGUAGE_BUTTON.splitlines()) + "\n"
-    text = text[:insert_pos] + snippet + (indent if insert_pos == line_start else "") + text[insert_pos:]
+    text = text[:insert_pos] + snippet + text[insert_pos:]
     path.write_text(text, encoding="utf-8")
 
 
@@ -186,16 +186,16 @@ def _patch_dynamic_ui(project: Path) -> None:
     components = project / "DetailPanelBuilder.Components.cs"
     if components.exists():
         text = components.read_text(encoding="utf-8")
-        marker = re.search(r'(private\s+static\s+object\s+WithInfoArrow\([^)]*\)\s*\{)', text)
-        if marker and "label = RenoDXCommander.Services.LocalizationService.GetDataString(label);" not in text:
+        marker = re.search(r'((?:private\s+)?static\s+object\s+WithInfoArrow\([^)]*\)\s*\{)', text)
+        if marker and "label = LocalizationService.GetDataString(label);" not in text:
             pos = marker.end()
-            text = text[:pos] + '\n        label = RenoDXCommander.Services.LocalizationService.GetDataString(label);' + text[pos:]
+            text = text[:pos] + '\n        label = LocalizationService.GetDataString(label);' + text[pos:]
         text = text.replace(
             'ToolTipService.SetToolTip(infoBtn, tooltip);',
-            'ToolTipService.SetToolTip(infoBtn, RenoDXCommander.Services.LocalizationService.GetDataString(tooltip));')
+            'ToolTipService.SetToolTip(infoBtn, LocalizationService.GetDataString(tooltip));')
         text = re.sub(
             r'(\.Text\s*=\s*)(card\.[A-Za-z_][A-Za-z0-9_]*StatusText)(?=;)',
-            r'\1RenoDXCommander.Services.LocalizationService.GetDataString(\2)',
+            r'\1LocalizationService.GetDataString(\2)',
             text)
         components.write_text(text, encoding="utf-8")
 
