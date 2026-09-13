@@ -17,6 +17,7 @@ UI_FILE_PATTERNS = (
 UI_ASSIGN_PROPS = (
     "Text", "Content", "Header", "PlaceholderText", "Title",
     "PrimaryButtonText", "SecondaryButtonText", "CloseButtonText",
+    "OnContent", "OffContent",
 )
 UI_CALLS = (
     "SetStatus", "ShowErrorDialog", "ShowInfoDialog", "NotifyUser",
@@ -301,6 +302,35 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
     return text, entries
 
 
+def _transform_tooltip_literals(text: str, relpath: str) -> tuple[str, dict[str, str]]:
+    entries: dict[str, str] = {}
+    tooltip_re = re.compile(
+        r'ToolTipService\.SetToolTip\(\s*(?P<target>[^,\n]+?)\s*,\s*"(?P<value>(?:[^"\\]|\\.)*)"\s*\)'
+    )
+    def tooltip_sub(m: re.Match) -> str:
+        raw = m.group("value")
+        value = _decode_csharp_string(raw)
+        if not value.strip() or not any(ch.isalpha() for ch in value):
+            return m.group(0)
+        key = _cs_key(relpath, value, "ToolTipService.SetToolTip")
+        entries[key] = value
+        fallback = _encode_csharp_string(value)
+        return (
+            f'ToolTipService.SetToolTip({m.group("target")}, '
+            f'RenoDXCommander.Services.LocalizationService.GetString("{key}", "{fallback}"))'
+        )
+    return tooltip_re.sub(tooltip_sub, text), entries
+
+
+def _inject_combobox_item_template(text: str) -> str:
+    """Use a display-only template so ComboBox values stay stable for program logic."""
+    pattern = re.compile(r'new\s+ComboBox\s*\{')
+    return pattern.sub(
+        lambda m: m.group(0) + '\n            ItemTemplate = RenoDXCommander.Services.LocalizationService.ComboBoxItemTemplate,',
+        text,
+    )
+
+
 def transform_csharp(text: str, relpath: str) -> tuple[str, dict[str, str]]:
     if not _is_ui_file(relpath):
         return text, {}
@@ -313,19 +343,23 @@ def transform_csharp(text: str, relpath: str) -> tuple[str, dict[str, str]]:
             return m.group(0)
         key = _cs_key(relpath, value, m.group("prop"))
         entries[key] = value
-        fallback = m.group("value").replace('"', '\\"')
+        fallback = _encode_csharp_string(value)
         return f'{m.group("prop")} = RenoDXCommander.Services.LocalizationService.GetString("{key}", "{fallback}")'
     text = prop_re.sub(prop_sub, text)
     call_alt = "|".join(map(re.escape, UI_CALLS))
     call_re = re.compile(rf'(?P<call>{call_alt})\(\s*"(?P<value>(?:[^"\\]|\\.)*)"\s*\)')
     def call_sub(m: re.Match) -> str:
-        value = m.group("value")
+        value = _decode_csharp_string(m.group("value"))
         key = _cs_key(relpath, value, m.group("call"))
         entries[key] = value
-        return f'{m.group("call")}(RenoDXCommander.Services.LocalizationService.GetString("{key}", "{value}"))'
+        fallback = _encode_csharp_string(value)
+        return f'{m.group("call")}(RenoDXCommander.Services.LocalizationService.GetString("{key}", "{fallback}"))'
     text = call_re.sub(call_sub, text)
+    text, tooltip_entries = _transform_tooltip_literals(text, relpath)
+    entries.update(tooltip_entries)
     text, interpolated_entries = _transform_interpolated_ui(text, relpath)
     entries.update(interpolated_entries)
+    text = _inject_combobox_item_template(text)
     return text, entries
 
 

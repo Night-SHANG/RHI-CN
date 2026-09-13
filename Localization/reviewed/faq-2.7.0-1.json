@@ -1,0 +1,137 @@
+{
+  "Welcome to RHI": {
+    "translation": "欢迎使用 RHI",
+    "state": "reviewed",
+    "source_hash": "c22eda094f6c66c7f9fc7231e951ae9100e74637c3952c2a9e73c85bddf1950e"
+  },
+  "RHI auto-detects your games and lets you install HDR mods, shaders, frame limiters, and manage NVIDIA driver settings — all from one place. Here's how to get started.": {
+    "translation": "RHI 会自动检测你的游戏，并可在一个地方安装 HDR 模组、着色器、帧率限制器，以及管理 NVIDIA 驱动设置。下面介绍如何开始使用。",
+    "state": "reviewed",
+    "source_hash": "f3467fcc1539446bced30eb180da477fc74355dc37e4185afc47df427e9c23d1"
+  },
+  "Select a Game": {
+    "translation": "选择游戏",
+    "state": "reviewed",
+    "source_hash": "a276f407c41364d8babe26b60beaaf5f3f0ea73cc6b302e191b1b1d4bd5e39fd"
+  },
+  "Your games are listed in the sidebar on the left. Click any game to see its details and available actions. Use the filter chips (All Games, Installed, Unreal, etc.) and search box to find specific games.": {
+    "translation": "你的游戏会列在左侧边栏。点击任意游戏即可查看详情和可用操作。可使用筛选按钮（全部游戏、已安装、Unreal 等）和搜索框快速查找游戏。",
+    "state": "reviewed",
+    "source_hash": "bde47d172d20bdb318d3e7c3edb1ce7f331acd8e1370f1f6cb784585e77500d4"
+  },
+  "Tip: Double-click a game to launch it directly. Drag and drop a game's .exe file onto RHI to add games not auto-detected.": {
+    "translation": "提示：双击游戏可直接启动。对于未自动检测到的游戏，可将游戏的 .exe 文件拖到 RHI 窗口中添加。",
+    "state": "reviewed",
+    "source_hash": "6efc724c4711117ec08e51554294893e9b11f46f9d3c0b7601d9cf08d74cb428"
+  },
+  "Install ReShade": {
+    "translation": "安装 ReShade",
+    "state": "reviewed",
+    "source_hash": "6bd92aacfa6726f83ef7648b26cd7ee887ba42e196d4c1806524b491e2393230"
+  },
+  "ReShade is required for RenoDX HDR mods to work. Click 'Install ReShade' on the game's detail panel. RHI automatically downloads and installs the correct version with full addon support.": {
+    "translation": "RenoDX HDR 模组需要 ReShade 才能工作。在游戏详情面板中点击“安装 ReShade”。RHI 会自动下载并安装支持完整附加组件功能的正确版本。",
+    "state": "reviewed",
+    "source_hash": "d90e6d9d91d1942aa2b2cb21d66c6ffd04f36e76a697bfd9e37076eb7a812bc2"
+  },
+  "ReShade version can be changed per-game via the game overrides section — choose Stable, Nightly, Legacy, or a custom ReShade DLL.\nVulkan Games: Vulkan games (like Doom Eternal) require admin privileges. RHI will prompt for elevation when needed.\nDrag and drop ReShade preset files (.ini) onto a game to install them automatically.": {
+    "translation": "可在“游戏覆盖设置”中为每个游戏单独选择 ReShade 版本：稳定版、夜间版、旧版或自定义 ReShade DLL。\nVulkan 游戏：Vulkan 游戏（如 Doom Eternal）需要管理员权限，RHI 会在需要时请求提权。\n也可以把 ReShade 预设文件（.ini）拖到游戏上自动安装。",
+    "state": "reviewed",
+    "source_hash": "7803330a9b2b44676e7e37e2d51f8720e7dfeae105ded191e14eb450345fd131"
+  },
+  "RenoDX is RHI's primary HDR mod framework. The RenoDX row on each game shows what's available:\n\n• Named mods — game-specific HDR mods from the RenoDX wiki, made by the community.\n• UE-Extended — for Unreal Engine games without a named mod. Provides native HDR output via a generic UE addon.\n• Unity addon — same idea for Unity Engine games. Provides HDR output for Unity games without a named mod.\n• RTX HDR — if no mod is available, you can enable NVIDIA's driver-level SDR-to-HDR conversion via the RenoDX ⚙ cog.": {
+    "translation": "RenoDX 是 RHI 的主要 HDR 模组框架。每个游戏的 RenoDX 一栏会显示可用内容：\n\n• 命名模组 — 来自 RenoDX Wiki、由社区制作的游戏专用 HDR 模组。\n• UE-Extended — 适用于没有命名模组的 Unreal Engine 游戏，通过通用 UE 附加组件提供原生 HDR 输出。\n• Unity addon — 面向 Unity 游戏的类似方案，为没有命名模组的 Unity 游戏提供 HDR 输出。\n• RTX HDR — 如果没有可用模组，可通过 RenoDX 的 ⚙ 齿轮启用 NVIDIA 驱动级 SDR 转 HDR。",
+    "state": "reviewed",
+    "source_hash": "249892667c210bdd7b76a769a59cc05e5c461e3b499559ea6b19a2d94a3af55b"
+  },
+  "The cog icon next to RenoDX opens advanced settings: Peak Nits, UE-Extended toggle, and RTX HDR configuration.\nEngine.ini Settings (Unreal Engine games only): toggle HDR keys and LUT update frequency written to the game's Engine.ini for accurate HDR rendering.\nFor games not on the wiki, drag and drop an .addon64 file from the RenoDX Discord directly onto the game in RHI.": {
+    "translation": "RenoDX 旁的齿轮图标可打开高级设置，包括峰值亮度、UE-Extended 开关和 RTX HDR 配置。\nEngine.ini 设置（仅 Unreal Engine 游戏）：可设置写入游戏 Engine.ini 的 HDR 项和 LUT 更新频率，以获得准确的 HDR 渲染。\n对于 Wiki 中没有的游戏，可把 RenoDX Discord 获取的 .addon64 文件直接拖到 RHI 中对应游戏上。",
+    "state": "reviewed",
+    "source_hash": "f5518520d01b5192693bfad831cdd4d86ccd3348a319fb41bd8b8b0081ebef57"
+  },
+  "Luma is an alternative mod framework developed by Pumbo (HDR Den). Depending on the game, a Luma mod may add HDR, DLAA (Deep Learning Anti-Aliasing), game-specific rendering fixes, or a combination of these — check the Info button for details on what each mod offers.\n\n• Completed mods — named Luma mods for supported games, shown on the Luma row.\n• Generic Luma — available for all DX11 Unreal Engine games. RHI installs it automatically and applies any game-specific Engine.ini tweaks or launch arguments listed on the Luma wiki.\n\nYou can install RenoDX and Luma on the same game — but there's no guarantee they'll work together on every title. RHI will warn you the first time you try to install both.": {
+    "translation": "Luma 是由 Pumbo（HDR Den）开发的另一套模组框架。根据游戏不同，Luma 模组可能提供 HDR、DLAA（深度学习抗锯齿）、游戏专用渲染修复，或这些功能的组合。可点击“信息”查看每个模组的具体功能。\n\n• 完整模组 — 为受支持游戏制作的命名 Luma 模组，会显示在 Luma 一栏。\n• 通用 Luma — 适用于所有 DX11 Unreal Engine 游戏。RHI 会自动安装，并应用 Luma Wiki 中列出的游戏专用 Engine.ini 调整或启动参数。\n\n同一游戏可以同时安装 RenoDX 和 Luma，但并不保证所有游戏都能同时正常工作。首次尝试同时安装时，RHI 会进行提示。",
+    "state": "reviewed",
+    "source_hash": "dd37c65685df8341980c1ec096e2d0b5b00cc7cacdcecdc57f825db6fdfb519d"
+  },
+  "Luma requires ReShade — it will be greyed out until ReShade is installed.\nThe Luma ⚙ cog lets you toggle TAA Engine.ini settings for games that need them.\nIf a game needs a specific launch argument (e.g. -dx11), RHI sets it automatically on install and removes it on uninstall. Launch arguments only apply when the game is launched through RHI.\nCheck the Info button on the Luma row for game-specific notes — completed mods often include details on what the mod adds or any in-game settings required.": {
+    "translation": "Luma 需要 ReShade；在安装 ReShade 前，Luma 会显示为不可用。\nLuma 的 ⚙ 齿轮可为需要的游戏切换 TAA Engine.ini 设置。\n如果游戏需要特定启动参数（例如 -dx11），RHI 会在安装时自动设置、卸载时移除。启动参数仅在通过 RHI 启动游戏时生效。\n可查看 Luma 一栏的“信息”按钮了解游戏专用说明；完整模组通常会说明新增功能及所需的游戏内设置。",
+    "state": "reviewed",
+    "source_hash": "f628ff487d914bf1d7c8d3b3ca81dc18b2319cc6f19f58d86e6f836c67cc95b8"
+  },
+  "Choose Shaders (Optional)": {
+    "translation": "选择着色器（可选）",
+    "state": "reviewed",
+    "source_hash": "955aa782004a2b51ccc55fbd132944d583c1450f37aaaa88e3987a7951f8c56a"
+  },
+  "Click the 'Shaders/Addons' button in the toolbar, then 'Global Shaders' to select shader packs. Lilium's HDR shader pack is selected by default. These apply to all games with ReShade installed.\n\nExpand any pack to pick individual shaders — the pack shows a dash when only some files are selected. Use the Profiles panel on the right to save, load, rename, and share named shader selections. Export a profile as a zip to share via Discord.": {
+    "translation": "点击工具栏中的“着色器/附加组件”，再选择“全局着色器”来选择着色器包。默认会选择 Lilium 的 HDR 着色器包。这些设置会应用到所有已安装 ReShade 的游戏。\n\n展开任意包可选择单独的着色器；仅选择部分文件时，包会显示短横线。可使用右侧“配置文件”面板保存、加载、重命名和分享命名的着色器选择。配置文件可导出为 zip 并通过 Discord 分享。",
+    "state": "reviewed",
+    "source_hash": "7bada8388c3bc134480c547ad3ce658aa4803f4b4e2baa41be06b7c6e6bdd3b9"
+  },
+  "Tip: Per-game shaders can be set using the Shaders button on each game's detail card (when ReShade is installed).\nTip: Use Expand All / Collapse All to browse all packs at once. Deselect All clears the whole selection. Export copies a zip of your selected shaders to the clipboard — paste directly into Discord to share.": {
+    "translation": "提示：安装 ReShade 后，可通过每个游戏详情卡片上的“着色器”按钮设置单独的游戏着色器。\n提示：使用“全部展开/全部折叠”可一次浏览所有包。“全部取消选择”会清空整个选择。导出会把所选着色器打包为 zip 并复制到剪贴板，可直接粘贴到 Discord 分享。",
+    "state": "reviewed",
+    "source_hash": "743186e88be95b9884b5f58d51637ffd2221b4384be0683160596e96fed390c0"
+  },
+  "DOF Fix (Recommended for UE5)": {
+    "translation": "DOF 修复（推荐用于 UE5）",
+    "state": "reviewed",
+    "source_hash": "2951cd54c116c10080b492fcc745ac9d934e417da473cb938362f15bf93d432f"
+  },
+  "DOF Fix backports a depth-of-field rendering fix from Unreal Engine 5.7 to games running on UE 5.0–5.6. It appears in the Recommended section on the game's detail panel when supported. Install it alongside RenoDX for the best result.": {
+    "translation": "DOF 修复会把 Unreal Engine 5.7 的景深渲染修复移植到 UE 5.0–5.6 游戏。在支持的游戏中，它会出现在详情面板的“推荐”区域。建议与 RenoDX 一起安装以获得最佳效果。",
+    "state": "reviewed",
+    "source_hash": "c301a86429fbd5eb527fb34e84bd4e244a29dc0c19f37d1f3c64e18088a04385"
+  },
+  "DOF Fix only shows on eligible UE 5.0–5.6 games — it won't appear on UE4 or UE 5.7+ titles.\nInstall and uninstall work the same as any other component.": {
+    "translation": "DOF 修复只会在符合条件的 UE 5.0–5.6 游戏中显示；UE4 或 UE 5.7+ 游戏不会出现。\n安装和卸载方式与其他组件相同。",
+    "state": "reviewed",
+    "source_hash": "da49ce28d4736041f36fa4a7ac197c47198b48126a6360845234bb943ee4b5ed"
+  },
+  "Frame Limiters (Optional)": {
+    "translation": "帧率限制器（可选）",
+    "state": "reviewed",
+    "source_hash": "24a1c9d41a3913f5ca622ea437441427050858bb1b12c3aae81611ee98558d9e"
+  },
+  "ReLimiter and Display Commander are ReShade addons that provide precise frame limiting for VRR displays. Install them from the game's detail panel. ReLimiter is recommended as it's developed by the same team as RHI. Set your target FPS in Settings, per-game via the cog icon, or directly in-game.": {
+    "translation": "ReLimiter 和 Display Commander 是 ReShade 附加组件，可为 VRR 显示器提供精确的帧率限制。可在游戏详情面板中安装。推荐使用 ReLimiter，因为它由 RHI 同一团队开发。目标 FPS 可在“设置”中设定，也可通过每个游戏的齿轮图标或直接在游戏中设置。",
+    "state": "reviewed",
+    "source_hash": "77aedd25cb24a8d3660aca91b1aa2d19b14102320221bf99314b888ae3d16c76"
+  },
+  "VRR cap presets by refresh rate (leave headroom below max for smooth VRR):\n• 60Hz → 59 FPS\n• 120Hz → 116 FPS\n• 144Hz → 138 FPS\n• 165Hz → 157 FPS\n• 240Hz → 224 FPS\n• 360Hz → 324 FPS\nThese values are pre-configured in RHI's FPS dropdown menus.": {
+    "translation": "按刷新率推荐的 VRR 帧率上限（低于最大刷新率保留余量可获得更平滑的 VRR）：\n• 60Hz → 59 FPS\n• 120Hz → 116 FPS\n• 144Hz → 138 FPS\n• 165Hz → 157 FPS\n• 240Hz → 224 FPS\n• 360Hz → 324 FPS\n这些数值已预设在 RHI 的 FPS 下拉菜单中。",
+    "state": "reviewed",
+    "source_hash": "34c9d88f56dd8a24a7fa1cf88f4bc81c56872a15a7f6a539b74926ead1331dcc"
+  },
+  "Update DLSS / Streamline (Optional)": {
+    "translation": "更新 DLSS / Streamline（可选）",
+    "state": "reviewed",
+    "source_hash": "5a301eb8bef10841df3700f6ed129ee66cd4e3c6cd03e8d63e57204835327f9d"
+  },
+  "Games with DLSS or Streamline DLLs have a dedicated section on the detail panel showing version info. Click to update to the latest version. Using the newest versions is recommended for best performance and quality. RHI backs up originals automatically so you can restore anytime.": {
+    "translation": "包含 DLSS 或 Streamline DLL 的游戏会在详情面板中显示专门区域和版本信息。点击即可更新到最新版本。建议使用最新版本以获得更好的性能和画质。RHI 会自动备份原文件，可随时恢复。",
+    "state": "reviewed",
+    "source_hash": "14d01762a0bb1cb2ffa16111cbe04d289023293e8e3717298305de29d4deff07"
+  },
+  "When new DLSS or Streamline versions release, they will appear in RHI automatically. Set your default DLSS preset in Settings. Per-game presets can be changed in the DLSS section on each game's detail panel.": {
+    "translation": "新的 DLSS 或 Streamline 版本发布后会自动出现在 RHI 中。可在“设置”中设置默认 DLSS 预设，也可在每个游戏详情面板的 DLSS 区域单独修改。",
+    "state": "reviewed",
+    "source_hash": "5c4045039cbaf4c258a32123dd4d55d8b0d1943fdcc30063e843e768acf3a5f2"
+  },
+  "OptiScaler (Optional)": {
+    "translation": "OptiScaler（可选）",
+    "state": "reviewed",
+    "source_hash": "ee1acf2ef0bae20992b08d795571b1264773e6896bdb241de8ffdd858c8c29a6"
+  },
+  "OptiScaler replaces DLSS/XeSS with alternative upscalers (FSR, XeSS, Intel Arc) or adds/patches frame generation on any GPU. Install it from the game's detail panel when a game has OptiScaler support.\n\nThe ⚙ cog on the OptiScaler row opens per-game settings. For the Nightly build channel these include:\n• Streamline/DLSS Enabler — deploys Streamline and DLSS Enabler to the game folder for DLSS Frame Generation support.\n• Frame Generation — set FG Input, FG Output, FG Nvngx Override, and HUD Fix.\n• Additional Settings — DLSS SR/RR preset, render scale, and flip metering.\n• Presets — save and apply named setting presets across games.\n• Engine.ini Settings (Unreal Engine games) — Dilated Motion Vectors, FSR Crash Fix, FSR-FG Swapchain, Upscaler Plugin.": {
+    "translation": "OptiScaler 可以用其他升频器（FSR、XeSS、Intel Arc）替换 DLSS/XeSS，也可以在各种 GPU 上添加或修补帧生成功能。支持 OptiScaler 的游戏可在详情面板中安装。\n\nOptiScaler 一栏的 ⚙ 齿轮可打开单游戏设置。Nightly 通道包括：\n• Streamline/DLSS Enabler — 将 Streamline 和 DLSS Enabler 部署到游戏目录，以支持 DLSS 帧生成。\n• 帧生成 — 设置 FG Input、FG Output、FG Nvngx Override 和 HUD Fix。\n• 其他设置 — DLSS SR/RR 预设、渲染比例和 Flip Metering。\n• 预设 — 保存并在不同游戏间应用命名设置预设。\n• Engine.ini 设置（Unreal Engine 游戏）— Dilated Motion Vectors、FSR Crash Fix、FSR-FG Swapchain、Upscaler Plugin。",
+    "state": "reviewed",
+    "source_hash": "ea6dacbe87623959e09a216c3028e5b291d0f6f774d8da99163588bca1e5dd7e"
+  },
+  "Switch between Stable and Nightly channels per game in the cog — Nightly adds frame generation and additional settings.\nOptiScaler and ReShade can coexist. If you see crashes with both installed, try renaming ReShade to a different DLL name using DLL Naming Overrides in the Game Overrides panel.\nGPU type and DLSS input settings (AMD/Intel only) are configured in Settings → OptiScaler Settings before installing.\nThe 'Deploy OptiScaler.ini' button in the cog redeploys your configured INI template to the game folder.": {
+    "translation": "可在每个游戏的齿轮设置中切换 Stable 与 Nightly 通道；Nightly 提供帧生成和更多设置。\nOptiScaler 与 ReShade 可以共存。如果同时安装后出现崩溃，可在“游戏覆盖设置”的“DLL 命名覆盖”中把 ReShade 改为其他 DLL 名称。\n安装前请在“设置 → OptiScaler 设置”中配置 GPU 类型和 DLSS 输入（仅 AMD/Intel）。\n齿轮中的“部署 OptiScaler.ini”按钮会把已配置的 INI 模板重新部署到游戏目录。",
+    "state": "reviewed",
+    "source_hash": "4adbe40f3d07ed2c67e6a6e95f2c0e272c895e56262180fa1aad4d2543253a1c"
+  }
+}
