@@ -7,6 +7,6 @@
     "manifest_2_7_0": "reviewed",
     "csharp_2_7_0_batch_4": "rebuild_required",
     "interpolated_csharp": "in_progress",
-    "merge_state": "pending_ref_update"
+    "merge_state": "merged"
   }
 }
