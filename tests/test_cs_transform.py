@@ -52,3 +52,25 @@ def test_does_not_resourceize_interpolation_with_no_translatable_literal():
     assert out == src
     assert entries == {}
     assert scan_csharp_unhandled(src, "MainWindow.Events.Settings.cs") == []
+
+
+def test_localizes_toggle_switch_on_and_off_content_literals():
+    src = 'var t = new ToggleSwitch { OnContent = "Custom filenames enabled", OffContent = "Override DLL filenames" };'
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Overrides.cs")
+    assert out.count("LocalizationService.GetString") == 2
+    assert set(entries.values()) == {"Custom filenames enabled", "Override DLL filenames"}
+
+
+def test_localizes_tooltip_service_literal_second_argument():
+    src = 'ToolTipService.SetToolTip(toggle, "Override the filenames ReShade is installed as.");'
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Overrides.cs")
+    assert "ToolTipService.SetToolTip(toggle, RenoDXCommander.Services.LocalizationService.GetString" in out
+    assert list(entries.values()) == ["Override the filenames ReShade is installed as."]
+
+
+def test_programmatic_combobox_uses_localized_display_template_without_changing_values():
+    src = 'var combo = new ComboBox { ItemsSource = new[] { "Global", "Select", "Off" }, SelectedItem = "Global" };'
+    out, _ = transform_csharp(src, "DetailPanelBuilder.Overrides.ShadersAddons.cs")
+    assert "ItemTemplate = RenoDXCommander.Services.LocalizationService.ComboBoxItemTemplate" in out
+    assert 'ItemsSource = new[] { "Global", "Select", "Off" }' in out
+    assert 'SelectedItem = "Global"' in out
