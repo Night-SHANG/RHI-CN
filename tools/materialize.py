@@ -17,16 +17,16 @@ from tools.manifest_scan import extract_user_visible_manifest_text
 from tools.translation_memory import load_translation_memory
 
 PACKAGE_VERSION = "2.3.0"
-LANGUAGE_BUTTON = '''                    <Button x:Name="LanguageBtn" l:Uids.Uid="Toolbar_LanguageButton" Content="Language"
+LANGUAGE_BUTTON = '''                    <Button x:Name="LanguageBtn" Content="Language"
                             Background="{StaticResource SurfaceInputBrush}" Foreground="{StaticResource AccentTealBrush}"
                             BorderBrush="{StaticResource AccentTealBorderBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="12,7" FontSize="12"
                             ToolTipService.ToolTip="Language changes apply after restarting RHI">
                         <Button.Flyout>
                             <MenuFlyout Placement="Bottom">
-                                <MenuFlyoutItem l:Uids.Uid="Toolbar_LanguageSystem" Text="System" Click="LanguageSystem_Click"/>
-                                <MenuFlyoutItem l:Uids.Uid="Toolbar_LanguageEnglish" Text="English" Click="LanguageEnglish_Click"/>
-                                <MenuFlyoutItem l:Uids.Uid="Toolbar_LanguageChinese" Text="简体中文" Click="LanguageChinese_Click"/>
+                                <MenuFlyoutItem Text="System" Click="LanguageSystem_Click"/>
+                                <MenuFlyoutItem Text="English" Click="LanguageEnglish_Click"/>
+                                <MenuFlyoutItem Text="简体中文" Click="LanguageChinese_Click"/>
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
@@ -39,8 +39,32 @@ def _load_json(path: Path, default):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _patch_csproj(path: Path) -> None:
+def _assembly_version(release_version: str) -> str:
+    parts = release_version.strip().split(".")
+    if not 2 <= len(parts) <= 4 or not all(p.isdigit() for p in parts):
+        raise ValueError(f"Invalid release version: {release_version}")
+    return ".".join((parts + ["0"] * 4)[:4])
+
+
+def _set_project_version(text: str, release_version: str) -> str:
+    version = _assembly_version(release_version)
+    for tag in ("AssemblyVersion", "FileVersion"):
+        pattern = rf'<{tag}>[^<]*</{tag}>'
+        replacement = f'<{tag}>{version}</{tag}>'
+        if re.search(pattern, text):
+            text = re.sub(pattern, replacement, text, count=1)
+        else:
+            m = re.search(r'</PropertyGroup>', text)
+            if not m:
+                raise RuntimeError("RenoDXCommander.csproj PropertyGroup contract changed")
+            text = text[:m.start()] + f'    {replacement}\n' + text[m.start():]
+    return text
+
+
+def _patch_csproj(path: Path, release_version: str | None = None) -> None:
     text = path.read_text(encoding="utf-8")
+    if release_version:
+        text = _set_project_version(text, release_version)
     if "WinUI3Localizer" not in text:
         idx = text.rfind("</ItemGroup>")
         if idx < 0:
@@ -82,6 +106,33 @@ def _patch_app(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _patch_app_resources(path: Path) -> None:
+    if not path.exists():
+        return
+    text = path.read_text(encoding="utf-8")
+    if 'xmlns:services="using:RenoDXCommander.Services"' not in text:
+        xns = re.search(r'xmlns:x="[^"]+"', text)
+        if not xns:
+            raise RuntimeError("App.xaml x namespace contract changed")
+        text = text[:xns.end()] + '\n    xmlns:services="using:RenoDXCommander.Services"' + text[xns.end():]
+    if 'x:Key="LocalizedComboBoxItemTemplate"' not in text:
+        resources = '''
+                <services:LocalizedStringConverter x:Key="LocalizedStringConverter"/>
+                <DataTemplate x:Key="LocalizedComboBoxItemTemplate">
+                    <TextBlock Text="{Binding Converter={StaticResource LocalizedStringConverter}}"/>
+                </DataTemplate>'''
+        self_closing = re.search(r'<ResourceDictionary\s*/>', text)
+        if self_closing:
+            replacement = '<ResourceDictionary>' + resources + '\n            </ResourceDictionary>'
+            text = text[:self_closing.start()] + replacement + text[self_closing.end():]
+        else:
+            opening = re.search(r'<ResourceDictionary(?:\s+[^>]*)?>', text)
+            if not opening:
+                raise RuntimeError("App.xaml ResourceDictionary contract changed")
+            text = text[:opening.end()] + resources + text[opening.end():]
+    path.write_text(text, encoding="utf-8")
+
+
 def _inject_language_button(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     if 'x:Name="LanguageBtn"' in text:
@@ -90,14 +141,63 @@ def _inject_language_button(path: Path) -> None:
     if idx < 0:
         raise RuntimeError("MainWindow.xaml SettingsBtn anchor changed")
     line_start = text.rfind("\n", 0, idx) + 1
-    indent = text[line_start:idx]
+    prefix = text[line_start:idx]
+    if prefix.strip():
+        insert_pos = idx
+        indent = ""
+    else:
+        insert_pos = line_start
+        indent = prefix
     snippet = "\n".join((indent + line if line else line) for line in LANGUAGE_BUTTON.splitlines()) + "\n"
-    text = text[:line_start] + snippet + indent + text[idx:]
+    text = text[:insert_pos] + snippet + (indent if insert_pos == line_start else "") + text[insert_pos:]
     path.write_text(text, encoding="utf-8")
 
 
 def _data_key(text: str) -> str:
     return "Data_" + hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def _patch_dynamic_ui(project: Path) -> None:
+    """Localize display-only runtime values without changing persisted/program state values."""
+    faq = project / "MainWindow.FaqBuilder.cs"
+    if faq.exists():
+        text = faq.read_text(encoding="utf-8")
+        text = re.sub(r'\bText\s*=\s*title\b', 'Text = RenoDXCommander.Services.LocalizationService.GetDataString(title)', text)
+        text = re.sub(r'\bText\s*=\s*description\b', 'Text = RenoDXCommander.Services.LocalizationService.GetDataString(description)', text)
+        text = re.sub(r'\bText\s*=\s*tip\b', 'Text = RenoDXCommander.Services.LocalizationService.GetDataString(tip)', text)
+        text = text.replace('Text = $"• {bullet}"', 'Text = $"• {RenoDXCommander.Services.LocalizationService.GetDataString(bullet)}"')
+        faq.write_text(text, encoding="utf-8")
+
+    factory = project / "UIFactory.cs"
+    if factory.exists():
+        text = factory.read_text(encoding="utf-8")
+        text = re.sub(r'\bText\s*=\s*label\b', 'Text = RenoDXCommander.Services.LocalizationService.GetDataString(label)', text)
+        text = re.sub(r'\bText\s*=\s*text\b', 'Text = RenoDXCommander.Services.LocalizationService.GetDataString(text)', text)
+        text = re.sub(r'\bContent\s*=\s*content\b', 'Content = RenoDXCommander.Services.LocalizationService.GetDataString(content)', text)
+        factory.write_text(text, encoding="utf-8")
+
+    main_vm = project / "ViewModels" / "MainViewModel.cs"
+    if main_vm.exists():
+        text = main_vm.read_text(encoding="utf-8")
+        text = text.replace('"Detail View"', 'RenoDXCommander.Services.LocalizationService.GetDataString("Detail View")')
+        text = text.replace('"Simple View"', 'RenoDXCommander.Services.LocalizationService.GetDataString("Simple View")')
+        main_vm.write_text(text, encoding="utf-8")
+
+    components = project / "DetailPanelBuilder.Components.cs"
+    if components.exists():
+        text = components.read_text(encoding="utf-8")
+        marker = re.search(r'(private\s+static\s+object\s+WithInfoArrow\([^)]*\)\s*\{)', text)
+        if marker and "label = RenoDXCommander.Services.LocalizationService.GetDataString(label);" not in text:
+            pos = marker.end()
+            text = text[:pos] + '\n        label = RenoDXCommander.Services.LocalizationService.GetDataString(label);' + text[pos:]
+        text = text.replace(
+            'ToolTipService.SetToolTip(infoBtn, tooltip);',
+            'ToolTipService.SetToolTip(infoBtn, RenoDXCommander.Services.LocalizationService.GetDataString(tooltip));')
+        text = re.sub(
+            r'(\.Text\s*=\s*)(card\.[A-Za-z_][A-Za-z0-9_]*StatusText)(?=;)',
+            r'\1RenoDXCommander.Services.LocalizationService.GetDataString(\2)',
+            text)
+        components.write_text(text, encoding="utf-8")
 
 
 def _patch_manifest_display(project: Path) -> None:
@@ -135,7 +235,7 @@ def _patch_manifest_display(project: Path) -> None:
         dialog_file.write_text(text, encoding="utf-8")
 
 
-def materialize(source_root: Path, repo_root: Path) -> dict:
+def materialize(source_root: Path, repo_root: Path, release_version: str | None = None) -> dict:
     source_root = Path(source_root)
     repo_root = Path(repo_root)
     project = source_root / "RenoDXCommander"
@@ -144,8 +244,9 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
     if missing:
         raise RuntimeError(f"Required upstream files missing: {missing}")
 
-    _patch_csproj(project / "RenoDXCommander.csproj")
+    _patch_csproj(project / "RenoDXCommander.csproj", release_version=release_version)
     _patch_app(project / "App.xaml.cs")
+    _patch_app_resources(project / "App.xaml")
     _inject_language_button(project / "MainWindow.xaml")
 
     overlay = repo_root / "overlay" / "RenoDXCommander"
@@ -157,6 +258,7 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
 
+    _patch_dynamic_ui(project)
     _patch_manifest_display(project)
 
     english: dict[str, str] = {}
@@ -192,6 +294,12 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
 
     exact = read_resw(repo_root / "Localization" / "zh-CN" / "Resources.resw")
     memory = load_translation_memory(repo_root / "Localization")
+    # Runtime-generated UI strings use GetDataString. Emit every known translation-memory
+    # source as a Data_* resource so display-only wrappers can translate without changing
+    # the underlying program values used for comparisons, persistence, and install logic.
+    for source in memory:
+        if isinstance(source, str) and source:
+            english.setdefault(_data_key(source), source)
     zh, fallback = materialize_zh(english, exact, memory)
     write_resw(project / "Strings" / "en-US" / "Resources.resw", english)
     write_resw(project / "Strings" / "zh-CN" / "Resources.resw", zh)
@@ -205,6 +313,7 @@ def materialize(source_root: Path, repo_root: Path) -> dict:
         "coverage_percent": round(((len(english) - len(fallback)) / len(english) * 100.0), 2) if english else 0.0,
         "unhandled_csharp": unhandled,
         "manifest_visible_text": manifest_visible,
+        "release_version_override": release_version,
     }
     (reports / "localization-report.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
@@ -214,8 +323,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", required=True, type=Path)
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
+    ap.add_argument("--release-version")
     args = ap.parse_args()
-    result = materialize(args.source, args.repo)
+    result = materialize(args.source, args.repo, release_version=args.release_version)
     print_json(result)
     return 0
 
