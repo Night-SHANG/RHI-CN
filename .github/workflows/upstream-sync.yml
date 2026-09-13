@@ -1,0 +1,210 @@
+name: Upstream sync and release
+
+on:
+  schedule:
+    - cron: '23 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rhi-cn-upstream-sync
+  cancel-in-progress: false
+
+env:
+  INNO_SETUP_VERSION: '6.7.1'
+  INNO_ZH_COMMIT: '1ff90acc4ed4aee82b1cda43253243deee3daed4'
+  TRANSLATION_API_URL: ${{ secrets.TRANSLATION_API_URL }}
+  TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
+  TRANSLATION_MODEL: ${{ secrets.TRANSLATION_MODEL }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  sync:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run repository tests
+        run: python -m pytest -q
+      - name: Read current upstream release
+        shell: pwsh
+        run: |
+          $release = gh api repos/RankFTW/RHI/releases/latest | ConvertFrom-Json
+          if (-not $release.tag_name) { throw 'Unable to resolve latest RHI release tag' }
+          "UPSTREAM_TAG=$($release.tag_name)" >> $env:GITHUB_ENV
+          $version = $release.tag_name -replace '^RHI-', ''
+          "RHI_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Clone and validate current upstream main
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/RankFTW/RHI.git upstream-main
+          $sha = (git -C upstream-main rev-parse HEAD).Trim()
+          "UPSTREAM_MAIN_SHA=$sha" >> $env:GITHUB_ENV
+          python tools\materialize.py --source upstream-main --repo .
+          $inventory = Get-Content 'Localization\inventory\main.json' -Raw | ConvertFrom-Json
+          if ([string]::IsNullOrWhiteSpace([string]$inventory.upstream_commit)) {
+            python tools\check_localization.py --source upstream-main --repo . --update-baseline
+          } else {
+            python tools\check_localization.py --source upstream-main --repo . --strict
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Incrementally translate new text when API is configured
+        shell: pwsh
+        run: |
+          python tools\translate_missing.py --source upstream-main --repo .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C upstream-main reset --hard HEAD
+          git -C upstream-main clean -fdx
+          python tools\materialize.py --source upstream-main --repo .
+          python tools\check_localization.py --source upstream-main --repo . --strict
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools\check_localization.py --source upstream-main --repo . --update-baseline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile current upstream main
+        shell: pwsh
+        run: dotnet test upstream-main\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
+      - name: Record validated main and observed release
+        shell: pwsh
+        run: |
+          python tools\update_state.py --validated-main "$env:UPSTREAM_MAIN_SHA" --observed-release "$env:UPSTREAM_TAG" --inventory-main "$env:UPSTREAM_MAIN_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Localization upstream.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: sync RHI main $env:UPSTREAM_MAIN_SHA [skip ci]"
+            git push origin HEAD:main
+          }
+      - name: Decide whether a formal CN release is needed
+        id: release-check
+        shell: pwsh
+        run: |
+          $state = Get-Content upstream.json -Raw | ConvertFrom-Json
+          if ($state.published_release_tag -eq $env:UPSTREAM_TAG) { 'needed=false' >> $env:GITHUB_OUTPUT } else { 'needed=true' >> $env:GITHUB_OUTPUT }
+      - name: Clone formal upstream release
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: git clone --depth 1 --branch "$env:UPSTREAM_TAG" https://github.com/RankFTW/RHI.git upstream-release
+      - name: Materialize and validate formal release
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          python tools\materialize.py --source upstream-release --repo .
+          python tools\check_localization.py --source upstream-release --repo . --strict
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools\translate_missing.py --source upstream-release --repo .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C upstream-release reset --hard HEAD
+          git -C upstream-release clean -fdx
+          python tools\materialize.py --source upstream-release --repo .
+          python tools\check_localization.py --source upstream-release --repo . --strict
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test formal release
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: dotnet test upstream-release\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
+      - name: Commit any formal-release translation additions before tagging
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          git add Localization\translation-memory.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: translate new strings for $env:UPSTREAM_TAG [skip ci]"
+            git push origin HEAD:main
+          }
+      - name: Patch and run official publish script
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          python tools\patch_publish.py upstream-release\publish.bat "$env:GITHUB_WORKSPACE\publish"
+          Push-Location upstream-release
+          cmd /c publish.bat
+          $code = $LASTEXITCODE
+          Pop-Location
+          if ($code -ne 0) { exit $code }
+          $required = @("$env:GITHUB_WORKSPACE\publish\RHI.exe","$env:GITHUB_WORKSPACE\publish\RHI.DropHelper.exe","$env:GITHUB_WORKSPACE\publish\Strings\en-US\Resources.resw","$env:GITHUB_WORKSPACE\publish\Strings\zh-CN\Resources.resw")
+          foreach ($path in $required) { if (-not (Test-Path $path)) { throw "Required publish output missing: $path" } }
+          Compress-Archive -Path "$env:GITHUB_WORKSPACE\publish\*" -DestinationPath "$env:GITHUB_WORKSPACE\RHI-CN-$env:RHI_VERSION-portable.zip" -Force
+      - name: Fetch pinned installer translation and record digest
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          $dir = 'upstream-release\Installer\Languages'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $url = "https://raw.githubusercontent.com/kira-96/Inno-Setup-Chinese-Simplified-Translation/$env:INNO_ZH_COMMIT/ChineseSimplified.isl"
+          Invoke-WebRequest -Uri $url -OutFile "$dir\ChineseSimplified.isl"
+          $hash = (Get-FileHash "$dir\ChineseSimplified.isl" -Algorithm SHA256).Hash.ToLowerInvariant()
+          New-Item -ItemType Directory -Force -Path reports | Out-Null
+          @{repository='kira-96/Inno-Setup-Chinese-Simplified-Translation';commit=$env:INNO_ZH_COMMIT;sha256=$hash;inno_setup_version=$env:INNO_SETUP_VERSION} | ConvertTo-Json | Set-Content reports\installer-translation.json -Encoding utf8
+      - name: Build pinned Inno Setup installer
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path installer | Out-Null
+          python tools\patch_installer.py 'upstream-release\RHI Setup.iss' --publish-dir "$env:GITHUB_WORKSPACE\publish" --output-dir "$env:GITHUB_WORKSPACE\installer" --chinese-isl 'Installer\Languages\ChineseSimplified.isl' --version "$env:RHI_VERSION"
+          choco install innosetup --version=$env:INNO_SETUP_VERSION -y --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($iscc) { & $iscc.Source 'upstream-release\RHI Setup.iss' } else { & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" 'upstream-release\RHI Setup.iss' }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $setup = "$env:GITHUB_WORKSPACE\installer\RHI-CN-$env:RHI_VERSION-Setup.exe"
+          if (-not (Test-Path $setup)) { throw "Installer missing: $setup" }
+      - name: Generate release notes
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          $report = Get-Content reports\localization-report.json -Raw | ConvertFrom-Json
+          $installer = Get-Content reports\installer-translation.json -Raw | ConvertFrom-Json
+          $releaseCommit = (git -C upstream-release rev-parse HEAD).Trim()
+          $fallbackCount = @($report.fallback_keys).Count
+          @("# RHI-CN $env:RHI_VERSION",'',"- Upstream release: $env:UPSTREAM_TAG","- Upstream commit: ``$releaseCommit``","- Simplified Chinese coverage: $($report.coverage_percent)%","- English fallback keys: $fallbackCount","- Inno Setup: $env:INNO_SETUP_VERSION","- Chinese installer translation commit: ``$($installer.commit)``","- Chinese installer translation SHA-256: ``$($installer.sha256)``","- Build date (UTC): $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss'))",'','This is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.') | Set-Content reports\release-notes.md -Encoding utf8
+      - name: Create release without overwriting an existing release
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          $cnTag = "RHI-CN-$env:RHI_VERSION"
+          $setupName = "RHI-CN-$env:RHI_VERSION-Setup.exe"
+          $zipName = "RHI-CN-$env:RHI_VERSION-portable.zip"
+          gh release view $cnTag --repo $env:GITHUB_REPOSITORY --json assets *> $null
+          if ($LASTEXITCODE -eq 0) {
+            $release = gh release view $cnTag --repo $env:GITHUB_REPOSITORY --json assets | ConvertFrom-Json
+            $names = @($release.assets | ForEach-Object { $_.name })
+            if ($setupName -notin $names -or $zipName -notin $names) { throw "Existing release $cnTag is incomplete; refusing to overwrite assets." }
+          } else {
+            $target = (git rev-parse HEAD).Trim()
+            gh release create $cnTag "$env:GITHUB_WORKSPACE\installer\$setupName" "$env:GITHUB_WORKSPACE\$zipName" --repo $env:GITHUB_REPOSITORY --target $target --title "RHI-CN $env:RHI_VERSION" --notes-file reports\release-notes.md
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Record successfully published release
+        if: steps.release-check.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          python tools\update_state.py --published-release "$env:UPSTREAM_TAG"
+          git add upstream.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: mark $env:UPSTREAM_TAG published [skip ci]"
+            git push origin HEAD:main
+          }
+      - name: Upload synchronization reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-sync-reports
+          if-no-files-found: warn
+          path: |
+            reports/*.json
+            reports/*.md
