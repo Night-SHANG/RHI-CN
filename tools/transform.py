@@ -70,7 +70,9 @@ def transform_xaml(text: str, relpath: str) -> tuple[str, dict[str, str]]:
     tag_re = re.compile(r'<(?P<tag>[A-Za-z_][\w:.]*)(?P<attrs>\s+[^<>]*?)(?P<close>/?)>', re.S)
     def tag_sub(m: re.Match) -> str:
         tag, attrs, close = m.group("tag"), m.group("attrs"), m.group("close")
-        if tag.startswith("/") or tag in {"Run"}:
+        # WinUI 3 Window is not a DependencyObject, so WinUI3Localizer's
+        # attached DependencyProperty cannot be assigned to the root Window.
+        if tag.startswith("/") or tag in {"Run", "Window"}:
             return m.group(0)
         found: list[tuple[str, str]] = []
         for attr in LOCALIZABLE_ATTRS:
