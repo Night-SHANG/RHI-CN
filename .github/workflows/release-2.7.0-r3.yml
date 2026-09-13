@@ -20,6 +20,9 @@ env:
   CN_TAG: RHI-CN-2.7.0-r3
   INNO_SETUP_VERSION: '6.7.1'
   INNO_ZH_COMMIT: '1ff90acc4ed4aee82b1cda43253243deee3daed4'
+  TRANSLATION_API_URL: ${{ secrets.TRANSLATION_API_URL }}
+  TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
+  TRANSLATION_MODEL: ${{ secrets.TRANSLATION_MODEL }}
   GH_TOKEN: ${{ github.token }}
 
 jobs:
@@ -43,9 +46,17 @@ jobs:
       - name: Clone formal upstream release
         shell: pwsh
         run: git clone --depth 1 --branch "$env:UPSTREAM_TAG" https://github.com/RankFTW/RHI.git upstream-release
-      - name: Materialize and require complete Simplified Chinese coverage
+      - name: Materialize, translate missing text, and require complete Simplified Chinese coverage
         shell: pwsh
         run: |
+          python tools\materialize.py --source upstream-release --repo . --release-version "$env:RHI_VERSION"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools\print_fallback_text.py --project upstream-release\RenoDXCommander
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools\translate_missing.py --source upstream-release --repo .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C upstream-release reset --hard HEAD
+          git -C upstream-release clean -fdx
           python tools\materialize.py --source upstream-release --repo . --release-version "$env:RHI_VERSION"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools\check_localization.py --source upstream-release --repo . --strict
@@ -56,6 +67,17 @@ jobs:
           if ([double]$report.coverage_percent -ne 100.0) { throw "Formal release coverage is $($report.coverage_percent)%, expected 100%." }
           if ($fallbackCount -ne 0) { throw "Formal release still has $fallbackCount fallback keys." }
           if ($unhandledCount -ne 0) { throw "Formal release still has $unhandledCount unhandled C# UI strings." }
+      - name: Persist new translation memory
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Localization\translation-memory.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: translate remaining RHI 2.7.0 UI strings [skip ci]"
+            git push origin HEAD:main
+          }
       - name: Verify fixed 2.7.0 assembly metadata and Window localization guard
         shell: pwsh
         run: |
