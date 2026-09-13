@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Generated integration workspaces / outputs
+upstream/
+upstream-main/
+upstream-release/
+publish/
+installer/
+reports/
+*.zip
+
+# IDE / OS
+.vs/
+.vscode/
+.DS_Store
+Thumbs.db
