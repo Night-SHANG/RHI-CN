@@ -129,7 +129,12 @@ def _patch_app_resources(path: Path) -> None:
             opening = re.search(r'<ResourceDictionary(?:\s+[^>]*)?>', text)
             if not opening:
                 raise RuntimeError("App.xaml ResourceDictionary contract changed")
-            text = text[:opening.end()] + resources + text[opening.end():]
+            merged_close = re.search(r'</ResourceDictionary\.MergedDictionaries\s*>', text[opening.end():])
+            if merged_close:
+                insert_pos = opening.end() + merged_close.end()
+            else:
+                insert_pos = opening.end()
+            text = text[:insert_pos] + resources + text[insert_pos:]
     path.write_text(text, encoding="utf-8")
 
 
