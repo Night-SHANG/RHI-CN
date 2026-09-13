@@ -101,14 +101,14 @@ jobs:
         if: steps.release-check.outputs.needed == 'true'
         shell: pwsh
         run: |
-          python tools\materialize.py --source upstream-release --repo .
+          python tools\materialize.py --source upstream-release --repo . --release-version "$env:RHI_VERSION"
           python tools\check_localization.py --source upstream-release --repo . --strict
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools\translate_missing.py --source upstream-release --repo .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git -C upstream-release reset --hard HEAD
           git -C upstream-release clean -fdx
-          python tools\materialize.py --source upstream-release --repo .
+          python tools\materialize.py --source upstream-release --repo . --release-version "$env:RHI_VERSION"
           python tools\check_localization.py --source upstream-release --repo . --strict
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test formal release
