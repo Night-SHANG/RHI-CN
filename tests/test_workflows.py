@@ -22,9 +22,10 @@ def test_build_workflow_pins_inno_and_verifies_resources():
     assert 'Strings\\en-US\\Resources.resw' in text and 'Strings\\zh-CN\\Resources.resw' in text
 
 
-def test_upstream_sync_is_daily_strict_and_never_clobbers_release():
+def test_upstream_sync_is_daily_strict_never_clobbers_and_stamps_formal_version():
     data, text = load('upstream-sync.yml')
     on = data.get('on') or data.get(True)
     assert 'schedule' in on and 'workflow_dispatch' in on
     assert '--strict' in text and '--update-baseline' in text
     assert 'gh release view' in text and '--clobber' not in text and 'published_release_tag' in text
+    assert text.count('--source upstream-release --repo . --release-version "$env:RHI_VERSION"') >= 2
