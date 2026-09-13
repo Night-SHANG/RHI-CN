@@ -114,4 +114,24 @@ public static class LocalizationService
             return fallback;
         }
     }
+
+    public static string Format(string key, string fallback, params object?[] args)
+    {
+        var template = GetString(key, fallback);
+        try
+        {
+            return string.Format(CultureInfo.CurrentCulture, template, args);
+        }
+        catch
+        {
+            try
+            {
+                return string.Format(CultureInfo.CurrentCulture, fallback, args);
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+    }
 }
