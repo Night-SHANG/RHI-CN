@@ -1,0 +1,8 @@
+{
+  "requested_release": "RHI-2.7.0",
+  "cn_tag": "RHI-CN-2.7.0-r1",
+  "reason": "Supersede the initial 99.69% formal-tag build with a verified 100% Simplified Chinese build.",
+  "required_coverage_percent": 100.0,
+  "required_fallback_keys": 0,
+  "required_unhandled_csharp": 0
+}
