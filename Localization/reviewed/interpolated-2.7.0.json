@@ -1,0 +1,252 @@
+{
+  "... and {0} more": {
+    "translation": "...以及另外 {0} 个",
+    "state": "reviewed",
+    "source_hash": "92cc7dab0b84a0521e695a1f795b88ba88c7d8c47018928088d8ec61525d8f3c"
+  },
+  "A dxgi.dll file was found in:\n{0}\n\n": {
+    "translation": "在以下位置发现 dxgi.dll 文件：\n{0}\n\n",
+    "state": "reviewed",
+    "source_hash": "4c704f249045e1650f707969997db83709043fe5cd7c5c721829a2337e57c908"
+  },
+  "A filter named \"{0}\" already exists.": {
+    "translation": "名为“{0}”的筛选器已存在。",
+    "state": "reviewed",
+    "source_hash": "e1b11d71e705b94c676f0b73731e59cc2e862726a67c543575a956dff5daffaf"
+  },
+  "A winmm.dll file was found in:\n{0}\n\n": {
+    "translation": "在以下位置发现 winmm.dll 文件：\n{0}\n\n",
+    "state": "reviewed",
+    "source_hash": "1b055f58b5584cca425c547ed17f08f9b3a155ad47641105d572f9ba5ef012f3"
+  },
+  "An error occurred during export:\n{0}": {
+    "translation": "导出时发生错误：\n{0}",
+    "state": "reviewed",
+    "source_hash": "d98dd9075e0436bc6546d23128d5b706921bcd2cccce3ad9c0e893c008fb493c"
+  },
+  "An error occurred: {0}": {
+    "translation": "发生错误：{0}",
+    "state": "reviewed",
+    "source_hash": "4fda937e744a8d7fd441993fa87fd1eed8b77c992972aa3017a8b5e41162a258"
+  },
+  "Applied peak nits ({0}) to {1} reshade.ini file{2}.": {
+    "translation": "已将峰值亮度（{0}）应用到 {1} 个 reshade.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "e57a554aa24fe29893de0b51b7950aac030f3bd61c3b9b3db2a81428f32eb81c"
+  },
+  "Connected as {0} ({1})": {
+    "translation": "已连接为 {0}（{1}）",
+    "state": "reviewed",
+    "source_hash": "788c95c86c2d2447f6585a055d620556e7d8d1c3b34d5d678adf57b8445199ce"
+  },
+  "Could not register the nxm:// handler: {0}": {
+    "translation": "无法注册 nxm:// 协议处理程序：{0}",
+    "state": "reviewed",
+    "source_hash": "8aed204ca905edacb628318fd30bee2ba1b444aa7abea928467076ebe948138e"
+  },
+  "DXVK variant changed to {0}.": {
+    "translation": "DXVK 变体已更改为 {0}。",
+    "state": "reviewed",
+    "source_hash": "6f04570a912be568ce8548afff6062b11f9f282a952f1259f834cb652807d479"
+  },
+  "Data for {0} games has been gathered and copied to your clipboard. Paste directly into Discord to share.": {
+    "translation": "已收集 {0} 个游戏的数据并复制到剪贴板。可直接粘贴到 Discord 分享。",
+    "state": "reviewed",
+    "source_hash": "5d9aa5dc4d8cd5fd912a437e7d81fb1c54e090a90fe3a7e5219ddd93728a6b63"
+  },
+  "Deleted {0} files, freed {1} of disk space.": {
+    "translation": "已删除 {0} 个文件，释放 {1} 磁盘空间。",
+    "state": "reviewed",
+    "source_hash": "bf10df9a6e22f654a0a9aa1ad88b75b35f0131445882f468d9f30c29cdc3f5f5"
+  },
+  "Error: {0}": {
+    "translation": "错误：{0}",
+    "state": "reviewed",
+    "source_hash": "43f78154e1d78fbb2fc864851db88cba828e5febe89d3f910aa3e10587cc377d"
+  },
+  "Exported {0} profile(s) to:\n{1}": {
+    "translation": "已导出 {0} 个配置文件到：\n{1}",
+    "state": "reviewed",
+    "source_hash": "6770852c2fcacb8f94b477cfefa013206dd83eeafd9c366f1447c9fa12a79165"
+  },
+  "Heads up — you're installing both RenoDX and Luma on this game.\n\n": {
+    "translation": "注意——你正在同时为此游戏安装 RenoDX 和 Luma。\n\n",
+    "state": "reviewed",
+    "source_hash": "ba2cbb589d8470f2cf71ce829edded8c1121fe73c22447b2de99f27d13d09477"
+  },
+  "Imported {0} profile(s) from backup.": {
+    "translation": "已从备份导入 {0} 个配置文件。",
+    "state": "reviewed",
+    "source_hash": "7aacd2d82d6fe6f7fd9ba63e6a3f75ad839f91d62f51a8dfd2f322354e37e2ba"
+  },
+  "Installed: {0}": {
+    "translation": "已安装：{0}",
+    "state": "reviewed",
+    "source_hash": "15ffa882f44aa7a87a361b088286125995b7a2aee6150010c98cce9ac7c1893b"
+  },
+  "Launch executable  —  {0}": {
+    "translation": "启动可执行文件  —  {0}",
+    "state": "reviewed",
+    "source_hash": "35537ae3bdb431c3b1c6006b53b0e968dd9bcbd35c8dab579c66d66a9fe1db6c"
+  },
+  "Luma mod detected: {0}\n\nSelect game to install to:": {
+    "translation": "检测到 Luma 模组：{0}\n\n请选择要安装到的游戏：",
+    "state": "reviewed",
+    "source_hash": "44ba13ce7dadda58414944d48b50b246a14912dd222ea1f4387fc474318962c4"
+  },
+  "No backup file found at:\n{0}\n\nBackup profiles first.": {
+    "translation": "在以下位置未找到备份文件：\n{0}\n\n请先备份配置文件。",
+    "state": "reviewed",
+    "source_hash": "3e017344cfda21a213c5b28586ca08ece89d7dbdf96c2ef5f89253979044dd4c"
+  },
+  "Peak Brightness: {0} nits": {
+    "translation": "峰值亮度：{0} 尼特",
+    "state": "reviewed",
+    "source_hash": "96a23d1e493bec2f6ae04336c960a2bb1215a80895a221dffc33f7909ae92e2a"
+  },
+  "ReShade build channel changed to {0}.\n\n": {
+    "translation": "ReShade 构建通道已更改为 {0}。\n\n",
+    "state": "reviewed",
+    "source_hash": "8efefb9484335ef34cf4bbe7eddb550c33c053970d95a839142438d950df9534"
+  },
+  "Remove {0} from RHI?": {
+    "translation": "从 RHI 中移除 {0}？",
+    "state": "reviewed",
+    "source_hash": "5f6e788e23580a7924a2b35c64b0fed9eadcbbcfced015cc72464d28a2821c57"
+  },
+  "Reset {0} game profile(s) and global settings to factory defaults.": {
+    "translation": "已将 {0} 个游戏配置文件和全局设置重置为出厂默认值。",
+    "state": "reviewed",
+    "source_hash": "1a6502e626793b9d335e56aaa05b8117086760a32f3ace2790d3e8dcdfddf84f"
+  },
+  "Reset: Display {0} = 50% (neutral)": {
+    "translation": "已重置：显示器 {0} = 50%（中性）",
+    "state": "reviewed",
+    "source_hash": "9948fff1cd2765719acd83dc8fa70e18afee74caaec96cbe9cca459cb8fab870"
+  },
+  "Restoring {0}...": {
+    "translation": "正在恢复 {0}...",
+    "state": "reviewed",
+    "source_hash": "68153c132bf1c4050d0ce8d062db3f188e3c69b79b1697cb81395292bbbf8ba7"
+  },
+  "Save the current search \"{0}\" as a custom filter:": {
+    "translation": "将当前搜索“{0}”保存为自定义筛选器：",
+    "state": "reviewed",
+    "source_hash": "00567aede4c884a3fcdfd8adbd6d847ebcf1b03cde42d5faba314ef84332143f"
+  },
+  "Saved: Display {0} = {1}%": {
+    "translation": "已保存：显示器 {0} = {1}%",
+    "state": "reviewed",
+    "source_hash": "270468e455f980c85dade8acca5976b100b6e19ce052004b5777023f10a7e5c8"
+  },
+  "Screenshot path, ReShade hotkeys, and effect list style applied to {0} reshade.ini file{1}.": {
+    "translation": "已将截图路径、ReShade 快捷键和效果列表样式应用到 {0} 个 reshade.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "4179b25c79de8dd668a1389d31d0bb51ca3f9f80ef3a90c282f4d9e6322803ef"
+  },
+  "Selected: {0}": {
+    "translation": "已选择：{0}",
+    "state": "reviewed",
+    "source_hash": "257ef4ccd82ffb8b3065a614b25b57de49e045013825641f959531032519d52a"
+  },
+  "Slot {0}": {
+    "translation": "槽位 {0}",
+    "state": "reviewed",
+    "source_hash": "f93b0fb1b7ac01f9814da67b076e696ed1d7e2737f54c5b9f3d35bf58f73e384"
+  },
+  "Staging DLSS5 Tool v{0}...": {
+    "translation": "正在暂存 DLSS5 Tool v{0}...",
+    "state": "reviewed",
+    "source_hash": "4e20e99e308405c0aff844f0d503b6e9b422651c5f7eb728e19d79a62d07bd37"
+  },
+  "Staging ShortFuse v{0}...": {
+    "translation": "正在暂存 ShortFuse v{0}...",
+    "state": "reviewed",
+    "source_hash": "448a1029fc9c870052a94d9ef105255bcc33c8dd10854ade315fcd18ae6e4f74"
+  },
+  "The existing '{0}' was renamed to '{1}' so ASI Loader can chain-load it automatically.": {
+    "translation": "现有的“{0}”已重命名为“{1}”，以便 ASI Loader 自动链式加载。",
+    "state": "reviewed",
+    "source_hash": "4d981f6d5cf216b3ef3c79777360f4968900f849bd0dd332c44304c9dca66ab5"
+  },
+  "The following components are installed: {0}.": {
+    "translation": "已安装以下组件：{0}。",
+    "state": "reviewed",
+    "source_hash": "279b10cdc4b718b9db955763b4901334e3f9f0c315e96e7a52bb5cd27e84badf"
+  },
+  "This toggles the engine version to Unreal Engine 5.0–5.6, making this game eligible for the DOF Fix addon.\n\nUse this when RHI cannot detect the UE version automatically (e.g. Game Pass games).": {
+    "translation": "这会将引擎版本设为 Unreal Engine 5.0–5.6，使此游戏可使用 DOF Fix 附加组件。\n\n当 RHI 无法自动检测 UE 版本（例如 Game Pass 游戏）时使用此选项。",
+    "state": "reviewed",
+    "source_hash": "4e2bd623bd7183d1468b0e431ded24025a9555be4b3a9521b2ca71f86a8844d5"
+  },
+  "This will remove ALL per-game NVIDIA driver profile overrides (DLSS/Streamline versions, presets, render scales, ReBAR, VSync, Smooth Motion, Low Latency, Power Mode — everything) AND reset global settings (Shader Cache, G-Sync, Refresh Rate, ReBAR) to defaults.\n\nAll profiles will return to NVIDIA factory defaults. This cannot be undone.": {
+    "translation": "这将移除所有单游戏 NVIDIA 驱动配置文件覆盖（DLSS/Streamline 版本、预设、渲染比例、ReBAR、垂直同步、Smooth Motion、低延迟、电源模式——全部），并将全局设置（着色器缓存、G-Sync、刷新率、ReBAR）恢复为默认值。\n\n所有配置文件都将恢复到 NVIDIA 出厂默认状态。此操作无法撤销。",
+    "state": "reviewed",
+    "source_hash": "be13a68f278cd9d50bdb538cf904afeb94f0f23d2f0b30b40b475d22388d1c15"
+  },
+  "This will restore driver settings for {0} back to the factory default and restore DLSS/Streamline DLLs to their original versions. This action is irreversible.": {
+    "translation": "这会将 {0} 的驱动设置恢复为出厂默认值，并将 DLSS/Streamline DLL 恢复到原始版本。此操作无法撤销。",
+    "state": "reviewed",
+    "source_hash": "c83c45f45e55a3237ce7c8c24ca58e03e528aa3a7af6bac5d12e7d4f4e18da80"
+  },
+  "Updated {0} OptiScaler.ini file{1}.": {
+    "translation": "已更新 {0} 个 OptiScaler.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "7805411cf499735cc364ffd9d505c59ce91e8d818e203c2e04aca43b6fd2a36c"
+  },
+  "Updated {0} relimiter.ini file{1}.": {
+    "translation": "已更新 {0} 个 relimiter.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "959c4367662590441c818a964b596850ba836809419a4be86cb65a2f6b9c1420"
+  },
+  "Updated {0} reshade.ini file{1}.": {
+    "translation": "已更新 {0} 个 reshade.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "d1500ce9bb1cf53d2dc595e241891109475a033bad8ca063baa1ca39e58ccca4"
+  },
+  "Upscalers: {0}": {
+    "translation": "升频器：{0}",
+    "state": "reviewed",
+    "source_hash": "f0891101bc47f1815f9ec2d4e0bc107fdbdb95f3de3c983735297f0310a68390"
+  },
+  "v{0}": {
+    "translation": "v{0}",
+    "state": "reviewed",
+    "source_hash": "9ad023b992882875c37470684628a6bd2ca24fd919a93440ff846e080e8b4988"
+  },
+  "v{0}  ·  Simplified PC Gaming by RankFTW": {
+    "translation": "v{0}  ·  RankFTW 的简化 PC 游戏管理",
+    "state": "reviewed",
+    "source_hash": "5965b2c2faae513433d8620825b69b6cd8b193adfa516370f574169dc9da4082"
+  },
+  "{0} installed": {
+    "translation": "已安装 {0} 个",
+    "state": "reviewed",
+    "source_hash": "4766f40736d658eed6bbaea371487de8927bdc81ddba114c29b5aabe7c61f69e"
+  },
+  "{0} new Ultra+ mod{1}:": {
+    "translation": "新增 {0} 个 Ultra+ 模组：",
+    "state": "reviewed",
+    "source_hash": "2ac8c64e4d6101528aa741477208846734f31c1c092c1a22bb4dbe482d04ec0e"
+  },
+  "{0} shown": {
+    "translation": "显示 {0} 个",
+    "state": "reviewed",
+    "source_hash": "c67ec9a7a4e91b720739c74739e7d3ce550e1291eb48b2f32261bd3015c054f7"
+  },
+  "⚠ Older ReShade versions may not support newer addons.\nThe game will be excluded from automatic ReShade updates.": {
+    "translation": "⚠ 较旧的 ReShade 版本可能不支持较新的附加组件。\n该游戏将被排除在 ReShade 自动更新之外。",
+    "state": "reviewed",
+    "source_hash": "624b841ca71116e9f73b16d0d658c902d29fa8ba662976193e0bef71b743b26f"
+  },
+  "🌙 {0} new Luma mod{1}:": {
+    "translation": "🌙 新增 {0} 个 Luma 模组：",
+    "state": "reviewed",
+    "source_hash": "168e1c552a02dae9ef6c9e64f27b06f35ef76bb4536ec04f92ba38048b0a6963"
+  },
+  "🖥️ {0} new RenoDX mod{1}:": {
+    "translation": "🖥️ 新增 {0} 个 RenoDX 模组：",
+    "state": "reviewed",
+    "source_hash": "8fd16cad3a1aa42e19370bd77e0b153354cba94e0c145efce27645f20a2c9239"
+  }
+}
