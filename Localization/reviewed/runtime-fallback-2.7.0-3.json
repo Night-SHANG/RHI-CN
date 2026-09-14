@@ -1,0 +1,162 @@
+{
+  "1GB is optimal for most games. Decrease to 512MB if experiencing ReBAR-related stutters.": {
+    "translation": "1GB 适合大多数游戏。如果出现与 ReBAR 相关的卡顿，可降低到 512MB。",
+    "state": "reviewed",
+    "source_hash": "e526979b3b6fd23ae74caa7c2ed019e8bf61eb1e3bc012679373431f879a5c7e"
+  },
+  "Off = DXVK disabled.\nDevelopment/Stable/Lilium HDR = DXVK variant selection.\nDXVK translates DirectX to Vulkan — enables compute shaders.": {
+    "translation": "关闭 = 禁用 DXVK。\n开发版/稳定版/Lilium HDR = 选择 DXVK 变体。\nDXVK 将 DirectX 转换为 Vulkan，并可启用计算着色器。",
+    "state": "reviewed",
+    "source_hash": "6156592093cc73930904602bd9e441f58d4c0cf0f956e38eb3fe2025e248f85d"
+  },
+  "Change the install folder for this game. Use when auto-detection picked the wrong directory.": {
+    "translation": "更改此游戏的安装目录。自动检测选错目录时使用。",
+    "state": "reviewed",
+    "source_hash": "e26df520efae50d7eb6ef697ec0429810da10df6388fa46e100978317569fdaa"
+  },
+  "Reset the install folder to auto-detected, or remove a manually added game entirely.": {
+    "translation": "将安装目录恢复为自动检测值，或彻底移除手动添加的游戏。",
+    "state": "reviewed",
+    "source_hash": "0c42dbfd5a9ea048a31edac43d314e33c0b206210d1b827788909d52e02513b9"
+  },
+  "Reset all per-game overrides back to defaults (DLL names, channels, shaders, addons, DXVK, launch settings, update inclusion).": {
+    "translation": "将此游戏的所有覆盖项恢复为默认值（DLL 名称、通道、着色器、附加组件、DXVK、启动设置、更新包含项）。",
+    "state": "reviewed",
+    "source_hash": "57a1443ac7212e0900aa69addde485deb5dcc55c4c1b7cdef30b4b7a104f8c8f"
+  },
+  "Copy a diagnostic report for this game to the clipboard. Useful for Discord or GitHub support.": {
+    "translation": "将此游戏的诊断报告复制到剪贴板，便于在 Discord 或 GitHub 上寻求支持。",
+    "state": "reviewed",
+    "source_hash": "f676ee3dec877aa8d74fad8262020d94aea89c271f0f00c803cc9c3472a3189b"
+  },
+  "Configure NVIDIA Multi Frame Generation: mode, frame count multiplier, and dynamic target frame rate. Requires 50 Series GPU.": {
+    "translation": "配置 NVIDIA 多帧生成：模式、帧数倍数和动态目标帧率。需要 RTX 50 系显卡。",
+    "state": "reviewed",
+    "source_hash": "75d745a6e3c4af3cdfe261bc55178d246be6d7cb372a4e2e97046ffb6e9c711e"
+  },
+  "Download and copy nvngx_dlssnr.dll to the game folder. Supports RTX 40 and 50 Series GPUs. Can also be deployed automatically via the RenoDX DLSS5 addon in the Addons picker.": {
+    "translation": "下载并将 nvngx_dlssnr.dll 复制到游戏目录。支持 RTX 40/50 系显卡。也可通过附加组件选择器中的 RenoDX DLSS5 附加组件自动部署。",
+    "state": "reviewed",
+    "source_hash": "faf11e3c94cbe3824eddcffba13a97a4ceec73f26a9020e3f60cd86c312310c4"
+  },
+  "Delete nvngx_dlssnr.dll from the game folder.": {
+    "translation": "从游戏目录删除 nvngx_dlssnr.dll。",
+    "state": "reviewed",
+    "source_hash": "26413b0d84183b40ad7d760acc9ff5f91972be1666f6e0d3a5d271a639eda4e1"
+  },
+  "Apply your configured DLSS/Streamline default versions, presets, and render scales to this game. Downloads versions on-demand if not cached.": {
+    "translation": "将已配置的 DLSS/Streamline 默认版本、预设和渲染比例应用到此游戏。若未缓存，会按需下载对应版本。",
+    "state": "reviewed",
+    "source_hash": "0c5b6e349d7c3288d8fd3ce11cbb911035dee059ad0c26e3a9ea881f3c0f7815"
+  },
+  "Restore all DLSS and Streamline DLLs to their original game versions and reset presets to Default.": {
+    "translation": "将所有 DLSS 和 Streamline DLL 恢复为游戏原始版本，并将预设重置为默认值。",
+    "state": "reviewed",
+    "source_hash": "ec723f1a2be157c4c23085605c06b32ca85c39bdb9b7b5fcf30b1c0bfcc0c3af"
+  },
+  "Override the global ReShade build channel for this game.\nVulkan games: changing this affects ALL Vulkan games.": {
+    "translation": "覆盖此游戏的全局 ReShade 构建通道。\nVulkan 游戏：修改此项会影响所有 Vulkan 游戏。",
+    "state": "reviewed",
+    "source_hash": "72d6fc0f6c3c3219137e144ae838c5354b49257cbeb13e3fb41062d8ae24b97f"
+  },
+  "Override the ReShade build channel for this game.\nVulkan games: changing this affects ALL Vulkan games.": {
+    "translation": "覆盖此游戏的 ReShade 构建通道。\nVulkan 游戏：修改此项会影响所有 Vulkan 游戏。",
+    "state": "reviewed",
+    "source_hash": "d354d22cf97f5b1b61fc17dba4f8ee161b74ad938ff8176817685cc9e50d2638"
+  },
+  "Choose which components are included in Update All for this game.": {
+    "translation": "选择此游戏在“全部更新”中包含哪些组件。",
+    "state": "reviewed",
+    "source_hash": "ae57de6526e21068411432370c18dc2aeab9f0e21cf5492a9d6d72f2ee6c6f79"
+  },
+  "Global = use global addon set. Select = pick per-game addons. Off = no addons for this game.": {
+    "translation": "全局 = 使用全局附加组件集。选择 = 为此游戏选择附加组件。关闭 = 此游戏不使用附加组件。",
+    "state": "reviewed",
+    "source_hash": "c3b4547d85e3ce61e7fb8854179ba92bc5cc951f84980e4bc6d28d57e66cc337"
+  },
+  "Pick .ini preset files to copy to this game's folder. Place presets in the reshade-presets folder.": {
+    "translation": "选择要复制到此游戏目录的 .ini 预设文件。请将预设放入 reshade-presets 文件夹。",
+    "state": "reviewed",
+    "source_hash": "c9ac6178729b5c0868d84767bcefead242a48b875fb8af9fd1bcf3cea13b527b"
+  },
+  "Override the executable used when launching this game. Leave blank for auto-detection (largest exe in install folder).": {
+    "translation": "覆盖启动此游戏时使用的可执行文件。留空则自动检测（安装目录中最大的 exe）。",
+    "state": "reviewed",
+    "source_hash": "3ff693f9363d19a6dc505ebb6d66ae293395914f071bc0b352b46d29d5f1515b"
+  },
+  "Browse for a game executable to use as the launch target.": {
+    "translation": "浏览并选择用作启动目标的游戏可执行文件。",
+    "state": "reviewed",
+    "source_hash": "18f1270a2a05babf8cdc07625b5a9e6483e824240bee1e52004be26823027b4a"
+  },
+  "Clear the launch executable override and revert to auto-detection.": {
+    "translation": "清除启动可执行文件覆盖项并恢复自动检测。",
+    "state": "reviewed",
+    "source_hash": "dd1d8da25fbecf08bd92bbb9f8f861d12307070710b2ef4d5a04440981c5f435"
+  },
+  "No ReShadePreset.ini found in RHI config folder": {
+    "translation": "RHI 配置目录中未找到 ReShadePreset.ini",
+    "state": "reviewed",
+    "source_hash": "f7e94bd4d07d925962b688d4fcffd8d8999e4b386d8162f5a677300e0aa758b4"
+  },
+  "Click here then press your desired key. Written to all reshade*.ini files for this game.": {
+    "translation": "点击此处，然后按下所需按键。该设置会写入此游戏的所有 reshade*.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "579323598e3a49f46ff8fa4269f54ef1dc2f30cad3826ff26c8d2c147009c2be"
+  },
+  "When No, RHI will not automatically update this game's reshade.ini on ReShade install, update, or Apply to All Games.": {
+    "translation": "设为“否”时，安装/更新 ReShade 或执行“应用到所有游戏”时，RHI 不会自动更新此游戏的 reshade.ini。",
+    "state": "reviewed",
+    "source_hash": "44fe6d507cadd69bde7f5b311265afd9eacd30a8eeebd33e84fec6f3c9d7b83b"
+  },
+  "Switch between using UE-Extended or the game specific mod/generic Unreal RenoDX mod.": {
+    "translation": "在 UE-Extended 与游戏专用模组/通用 Unreal RenoDX 模组之间切换。",
+    "state": "reviewed",
+    "source_hash": "b288de7c3e1e625d329abcccd796b7a05416353a854d8e8560c926669fce1cf8"
+  },
+  "Managed by custom Engine.ini file — not available for this game.": {
+    "translation": "由自定义 Engine.ini 文件管理 — 此游戏不可用。",
+    "state": "reviewed",
+    "source_hash": "db51eb8c139cce4cfde3cfb5053bd9e9ebde56e0f89f93206bf263e0563a6acf"
+  },
+  "Deploys Engine.ini with HDR flags for games that don't have an ingame HDR option. Disable for SDR.": {
+    "translation": "为没有游戏内 HDR 选项的游戏部署带 HDR 标志的 Engine.ini。使用 SDR 时请禁用。",
+    "state": "reviewed",
+    "source_hash": "2e7d156f976041dcf1969bc6ad17b18fa21b472be53c03fddcdd3c9f8778767b"
+  },
+  "Writes r.LUT.UpdateEveryFrame=1 to Engine.ini. Ensures the game recalculates LUTs each frame for accurate HDR color.": {
+    "translation": "向 Engine.ini 写入 r.LUT.UpdateEveryFrame=1，确保游戏每帧重新计算 LUT，以获得准确的 HDR 色彩。",
+    "state": "reviewed",
+    "source_hash": "8d3d42ab48f5992ee27f49b8e5ef7d82f12bfdf9afc87d74f0480a44c7f72718"
+  },
+  "Save all RenoDX presets to a file and copy to clipboard for sharing.": {
+    "translation": "将所有 RenoDX 预设保存到文件，并复制到剪贴板以便分享。",
+    "state": "reviewed",
+    "source_hash": "2deb23d2d7df065b6abd2da906a4a3663cb71330a0df1c5ee4931c99a7274997"
+  },
+  "No RHI-RenoDX-Preset.txt file found. Export first.": {
+    "translation": "未找到 RHI-RenoDX-Preset.txt 文件。请先导出。",
+    "state": "reviewed",
+    "source_hash": "c434208dc686538a4245e61f6b8dc24bf820956a7d1fccbdf400b424134113d2"
+  },
+  "Restore presets from the exported backup file into reshade.ini.": {
+    "translation": "从导出的备份文件将预设恢复到 reshade.ini。",
+    "state": "reviewed",
+    "source_hash": "55f2addfbefee0eaf02414db956416d2aecbec1ea177d4177a96a4f501d4ea13"
+  },
+  "Calculate Middle Grey from Peak Brightness and Gamma using the ITU formula": {
+    "translation": "使用 ITU 公式根据峰值亮度和 Gamma 计算中灰值",
+    "state": "reviewed",
+    "source_hash": "4c496a5d0e5e35dd1a80531cd2297511610e152ee0552cdbba324ab7e7bdda29"
+  },
+  "Save current slider values as your default RTX HDR preset": {
+    "translation": "将当前滑块数值保存为默认 RTX HDR 预设",
+    "state": "reviewed",
+    "source_hash": "800ecbb42cbb1b83f4b9ee17ff0de3f2152fd38c38d41bec0735dc772923159b"
+  },
+  "Apply your saved default preset to the sliders": {
+    "translation": "将已保存的默认预设应用到滑块",
+    "state": "reviewed",
+    "source_hash": "25082257d4a6d2d715b5546e5b2f9d26fd9eac226714f92a9f85fa3ddbcdac9f"
+  }
+}
