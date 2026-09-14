@@ -32,6 +32,32 @@ def test_interpolated_tooltip_uses_localized_format_without_changing_argument():
     assert list(entries.values()) == ["Installed as: {0}\nClick to open GitHub releases"]
 
 
+def test_ternary_tooltip_localizes_interpolated_false_branch_without_invalid_dollar_prefix():
+    src = '''ToolTipService.SetToolTip(toggle, rtx40MfgConflict
+        ? "RTX 40 MFG Unlock is already installed."
+        : $"Disable {mutualExclusivePeer} first to enable this addon.");'''
+    out, entries = transform_csharp(src, "AddonPopupHelper.cs")
+    assert "$RenoDXCommander.Services.LocalizationService" not in out
+    assert "LocalizationService.Format" in out
+    assert "LocalizationService.GetString" in out
+    assert '$"{mutualExclusivePeer}"' in out
+    assert "RTX 40 MFG Unlock is already installed." in entries.values()
+    assert "Disable {0} first to enable this addon." in entries.values()
+
+
+def test_ternary_tooltip_localizes_interpolated_true_branch_without_invalid_dollar_prefix():
+    src = '''ToolTipService.SetToolTip(installBtn, isInstalled
+        ? $"Reinstall Ultimate ASI Loader (currently '{installedAs}')"
+        : "Install Ultimate ASI Loader — choose which DLL name to use");'''
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert "$RenoDXCommander.Services.LocalizationService" not in out
+    assert "LocalizationService.Format" in out
+    assert "LocalizationService.GetString" in out
+    assert '$"{installedAs}"' in out
+    assert "Reinstall Ultimate ASI Loader (currently '{0}')" in entries.values()
+    assert "Install Ultimate ASI Loader — choose which DLL name to use" in entries.values()
+
+
 def test_tooltip_source_property_is_collected_without_changing_program_value():
     src = 'card.DxvkToggleTooltip = "DXVK is unavailable for this game.";'
     out, entries = transform_csharp(src, "Models/GameCard.cs")
