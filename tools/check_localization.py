@@ -39,9 +39,11 @@ def evaluate_report(
     }
 
 
-def should_fail(result: dict, strict: bool) -> bool:
+def should_fail(result: dict, strict: bool, no_fallback: bool = False) -> bool:
     fatal = bool(result["missing_zh_keys"] or result["stale_reviewed_sources"])
     if strict and result["new_unhandled_csharp"]:
+        fatal = True
+    if no_fallback and result.get("fallback_keys"):
         fatal = True
     return fatal
 
@@ -51,6 +53,11 @@ def main() -> int:
     ap.add_argument("--source", type=Path, required=True)
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
     ap.add_argument("--strict", action="store_true")
+    ap.add_argument(
+        "--no-fallback",
+        action="store_true",
+        help="Fail if any generated zh-CN resource still falls back to English.",
+    )
     ap.add_argument("--update-baseline", action="store_true")
     args = ap.parse_args()
 
@@ -87,7 +94,7 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print_json(result)
-    return 1 if should_fail(result, args.strict) else 0
+    return 1 if should_fail(result, args.strict, args.no_fallback) else 0
 
 if __name__ == "__main__":
     raise SystemExit(main())
