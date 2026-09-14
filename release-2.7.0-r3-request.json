@@ -1,7 +1,7 @@
 {
   "release": "RHI-CN-2.7.0-r3",
   "upstream": "RHI-2.7.0",
-  "reason": "Rebuild after correcting 2.7.0 version metadata and expanding runtime-generated Simplified Chinese UI localization",
-  "requested_at": "2026-09-14T01:31:00Z",
-  "attempt": 4
+  "reason": "Rebuild after correcting 2.7.0 version metadata and completing reviewed runtime Simplified Chinese localization",
+  "requested_at": "2026-09-14T01:36:00Z",
+  "attempt": 5
 }
