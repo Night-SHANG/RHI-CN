@@ -1,4 +1,4 @@
-from tools.translation_memory import merge_machine_translations, stale_reviewed_entries
+from tools.translation_memory import merge_machine_translations, stale_reviewed_entries, source_hash
 
 
 def test_reviewed_translation_is_never_overwritten():
@@ -44,3 +44,32 @@ def test_translation_memory_loads_reviewed_shards_and_fails_on_conflict(tmp_path
     }, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(RuntimeError, match="Conflicting reviewed translation"):
         load_translation_memory(loc)
+
+
+def test_later_reviewed_duplicate_can_repair_stale_hash_when_translation_matches(tmp_path):
+    import json
+    from tools.translation_memory import load_translation_memory
+
+    loc = tmp_path / "Localization"
+    reviewed = loc / "reviewed"
+    reviewed.mkdir(parents=True)
+    source = "Off [Latency]"
+    translation = "关闭 [延迟]"
+    (reviewed / "a-old.json").write_text(json.dumps({
+        source: {
+            "translation": translation,
+            "state": "reviewed",
+            "source_hash": "stale",
+        }
+    }, ensure_ascii=False), encoding="utf-8")
+    (reviewed / "z-repair.json").write_text(json.dumps({
+        source: {
+            "translation": translation,
+            "state": "reviewed",
+            "source_hash": source_hash(source),
+        }
+    }, ensure_ascii=False), encoding="utf-8")
+
+    merged = load_translation_memory(loc)
+    assert merged[source]["source_hash"] == source_hash(source)
+    assert stale_reviewed_entries(merged) == []
