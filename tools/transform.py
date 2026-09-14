@@ -12,7 +12,7 @@ LOCALIZABLE_ATTRS = (
 UI_FILE_PATTERNS = (
     "MainWindow", "DetailPanelBuilder", "CompactViewBuilder", "AddonManagerDialog",
     "AddonPopupHelper", "SettingsHandler", "InstallEventHandler", "SetupWindow",
-    "Dialog", "UIFactory",
+    "Dialog", "UIFactory", "UpdateInclusionHelper",
 )
 UI_ASSIGN_PROPS = (
     "Text", "Content", "Header", "PlaceholderText", "Title",
@@ -75,13 +75,17 @@ def transform_xaml(text: str, relpath: str) -> tuple[str, dict[str, str]]:
         # attached DependencyProperty cannot be assigned to the root Window.
         if tag.startswith("/") or tag in {"Run", "Window"}:
             return m.group(0)
+        combo_template_added = False
+        if tag == "ComboBox" and not re.search(r'\bItemTemplate\s*=', attrs):
+            attrs += ' ItemTemplate="{StaticResource LocalizedComboBoxItemTemplate}"'
+            combo_template_added = True
         found: list[tuple[str, str]] = []
         for attr in LOCALIZABLE_ATTRS:
             am = re.search(rf'(?<![\w:.]){re.escape(attr)}\s*=\s*"([^"]*)"', attrs)
             if am and _valid_literal(am.group(1)):
                 found.append((attr, html.unescape(am.group(1))))
         if not found:
-            return m.group(0)
+            return f'<{tag}{attrs}{close}>' if combo_template_added else m.group(0)
         um = re.search(r'l:Uids\.Uid\s*=\s*"([^"]+)"', attrs)
         if um:
             uid = um.group(1)
@@ -277,6 +281,15 @@ def _interpolated_context(text: str, start: int) -> tuple[str, str] | None:
     return None
 
 
+def _is_probably_text_expression(expr: str) -> bool:
+    expr = expr.strip()
+    if not re.fullmatch(r'(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*', expr):
+        return False
+    tail = expr.rsplit('.', 1)[-1].lower()
+    exact = {"text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status"}
+    return tail in exact or tail.endswith(("text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status"))
+
+
 def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, str]]:
     entries: dict[str, str] = {}
     replacements: list[tuple[int, int, str]] = []
@@ -285,13 +298,18 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
         if not context:
             continue
         fmt, args, has_english = _split_interpolated_body(body)
-        if not has_english or not args:
+        if not args:
+            continue
+        if not has_english and not any(_is_probably_text_expression(expr) for expr in args):
             continue
         kind, name = context
         key = _cs_key(relpath, fmt, f'interpolated:{kind}:{name}')
         entries[key] = fmt
         fallback = _encode_csharp_string(fmt)
-        rendered_args = ', '.join(f'$"{{{expr}}}"' for expr in args)
+        rendered_args = ', '.join(
+            f'RenoDXCommander.Services.LocalizationService.GetDataString($"{{{expr}}}")'
+            for expr in args
+        )
         replacement = (
             f'RenoDXCommander.Services.LocalizationService.Format("{key}", "{fallback}"'
             + (f', {rendered_args}' if rendered_args else '') + ')'
@@ -322,6 +340,81 @@ def _transform_tooltip_literals(text: str, relpath: str) -> tuple[str, dict[str,
     return tooltip_re.sub(tooltip_sub, text), entries
 
 
+def _localize_literal_expr(relpath: str, prop: str, raw: str, kind: str, entries: dict[str, str]) -> str:
+    value = _decode_csharp_string(raw)
+    if not value.strip() or not any(ch.isalpha() for ch in value):
+        return f'"{raw}"'
+    key = _cs_key(relpath, value, kind)
+    entries[key] = value
+    fallback = _encode_csharp_string(value)
+    return f'RenoDXCommander.Services.LocalizationService.GetString("{key}", "{fallback}")'
+
+
+def _transform_concatenated_properties(
+    text: str, relpath: str, prop_alt: str
+) -> tuple[str, dict[str, str]]:
+    """Collapse adjacent literal-only UI text concatenations into one resource."""
+    entries: dict[str, str] = {}
+    literal = r'"(?:[^"\\]|\\.)*"'
+    pattern = re.compile(
+        rf'\b(?P<prop>{prop_alt})\s*=\s*(?P<expr>{literal}(?:\s*\+\s*{literal})+)',
+        re.S,
+    )
+
+    def sub(m: re.Match) -> str:
+        prop = m.group("prop")
+        literals = re.findall(literal, m.group("expr"), re.S)
+        value = "".join(_decode_csharp_string(item[1:-1]) for item in literals)
+        if not value.strip() or not any(ch.isalpha() for ch in value):
+            return m.group(0)
+        key = _cs_key(relpath, value, f"{prop}:concat")
+        entries[key] = value
+        fallback = _encode_csharp_string(value)
+        return f'{prop} = RenoDXCommander.Services.LocalizationService.GetString("{key}", "{fallback}")'
+
+    return pattern.sub(sub, text), entries
+
+
+def _transform_ternary_properties(
+    text: str, relpath: str, prop_alt: str
+) -> tuple[str, dict[str, str]]:
+    """Localize literal branches of simple ternary UI property expressions."""
+    entries: dict[str, str] = {}
+    literal = r'"(?P<{name}>(?:[^"\\]|\\.)*)"'
+    yes_lit = literal.format(name="yes")
+    no_lit = literal.format(name="no")
+    pattern = re.compile(
+        rf'\b(?P<prop>{prop_alt})\s*=\s*(?P<cond>[^?;\n]+?)\?\s*{yes_lit}\s*:\s*{no_lit}'
+    )
+
+    def sub(m: re.Match) -> str:
+        prop = m.group("prop")
+        yes = _localize_literal_expr(relpath, prop, m.group("yes"), f"{prop}:ternary:yes", entries)
+        no = _localize_literal_expr(relpath, prop, m.group("no"), f"{prop}:ternary:no", entries)
+        return f'{prop} = {m.group("cond").strip()} ? {yes} : {no}'
+
+    return pattern.sub(sub, text), entries
+
+
+def _transform_dynamic_text_properties(text: str) -> str:
+    """Localize only simple display-text identifiers, not calls or control expressions."""
+    pattern = re.compile(
+        r'\bText\s*=\s*(?P<expr>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)(?=\s*[,};])'
+    )
+
+    def sub(m: re.Match) -> str:
+        expr = m.group("expr")
+        if expr.startswith("RenoDXCommander.Services.LocalizationService"):
+            return m.group(0)
+        if not _is_probably_text_expression(expr):
+            return m.group(0)
+        return (
+            "Text = RenoDXCommander.Services.LocalizationService.GetDataString("
+            + expr + ")"
+        )
+
+    return pattern.sub(sub, text)
+
 def _inject_combobox_item_template(text: str) -> str:
     """Use a display-only template so ComboBox values stay stable for program logic."""
     pattern = re.compile(r'new\s+ComboBox\s*\{')
@@ -336,6 +429,10 @@ def transform_csharp(text: str, relpath: str) -> tuple[str, dict[str, str]]:
         return text, {}
     entries: dict[str, str] = {}
     prop_alt = "|".join(map(re.escape, UI_ASSIGN_PROPS))
+    text, concat_entries = _transform_concatenated_properties(text, relpath, prop_alt)
+    entries.update(concat_entries)
+    text, ternary_entries = _transform_ternary_properties(text, relpath, prop_alt)
+    entries.update(ternary_entries)
     prop_re = re.compile(rf'\b(?P<prop>{prop_alt})\s*=\s*"(?P<value>(?:[^"\\]|\\.)*)"')
     def prop_sub(m: re.Match) -> str:
         value = _decode_csharp_string(m.group("value"))
@@ -359,6 +456,7 @@ def transform_csharp(text: str, relpath: str) -> tuple[str, dict[str, str]]:
     entries.update(tooltip_entries)
     text, interpolated_entries = _transform_interpolated_ui(text, relpath)
     entries.update(interpolated_entries)
+    text = _transform_dynamic_text_properties(text)
     text = _inject_combobox_item_template(text)
     return text, entries
 
@@ -371,6 +469,6 @@ def scan_csharp_unhandled(text: str, relpath: str) -> list[dict[str, str]]:
         if not _interpolated_context(text, start):
             continue
         fmt, args, has_english = _split_interpolated_body(body)
-        if has_english and args:
+        if args and (has_english or any(_is_probably_text_expression(expr) for expr in args)):
             findings.append({"file": relpath, "text": body, "format": fmt, "kind": "interpolated"})
     return findings
