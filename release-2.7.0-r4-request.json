@@ -1,7 +1,7 @@
 {
   "release": "RHI-CN-2.7.0-r4",
   "upstream": "RHI-2.7.0",
-  "reason": "Release remaining runtime localization fixes and hardened dynamic text transformation",
-  "requested_at": "2026-09-14T12:54:00Z",
-  "attempt": 1
+  "reason": "Retry after adding reviewed translations for all runtime strings surfaced by r4",
+  "requested_at": "2026-09-14T13:08:00Z",
+  "attempt": 2
 }
