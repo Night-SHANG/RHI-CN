@@ -1,0 +1,162 @@
+{
+  "dxgi.dll may conflict with ReShade or OS components if they also use this name.": {
+    "translation": "如果 ReShade 或其他组件也使用此名称，dxgi.dll 可能发生冲突。",
+    "state": "reviewed",
+    "source_hash": "8b8922ffe79c5fb9d9cafcbcc82057dc4ec619a357b8bb2f2ba2c13831013851"
+  },
+  "NR DLL version to deploy. 'Latest' always uses the newest available.": {
+    "translation": "要部署的 NR DLL 版本。“最新”始终使用当前可用的最新版本。",
+    "state": "reviewed",
+    "source_hash": "c38bcdd33d8519c26e3c94a6220aba7cda7fad7ff32bba3a5c126c606de16ce0"
+  },
+  "ShortFuse settings — auto-configure ReShade for FrameGen": {
+    "translation": "ShortFuse 设置 — 自动为帧生成配置 ReShade",
+    "state": "reviewed",
+    "source_hash": "9c07299241e1a6d55617a0ec31ac9a7325c9ed8b575deae606c702dd7101643b"
+  },
+  "Cost Scaler not yet staged — will be available after first launch": {
+    "translation": "Cost Scaler 尚未准备就绪 — 首次启动后可用",
+    "state": "reviewed",
+    "source_hash": "0ac64d1902efb4b54cbbdb1ac3476dd75308f9ce51d29a6c66064de933f6d6eb"
+  },
+  "Remove the installed NR method first, then toggle Cost Scaler On before reinstalling": {
+    "translation": "请先移除已安装的 NR 方法，然后将 Cost Scaler 设为开启，再重新安装",
+    "state": "reviewed",
+    "source_hash": "7f535e3bbbc093c0342de4a8a9862efb1deb8e585cfc48d40a09e134a51c4578"
+  },
+  "The display name for this game. Edit and press Enter to rename. Reset reverts to the auto-detected store name.": {
+    "translation": "此游戏的显示名称。编辑后按 Enter 重命名。“重置”会恢复为自动检测到的商店名称。",
+    "state": "reviewed",
+    "source_hash": "d44350b28d97cc00688379fc275b7bf4bb08adc6b0fb16552148050976a0d315"
+  },
+  "Override the name used to look up this game on the RenoDX/Luma wiki. Leave blank to use the game name. Press Enter to save.": {
+    "translation": "覆盖在 RenoDX/Luma Wiki 中查询此游戏时使用的名称。留空则使用游戏名称。按 Enter 保存。",
+    "state": "reviewed",
+    "source_hash": "9a24a9b4760120b6fbe1d09a5fa06afbad24e260a31a5888080eeb07e4dd7a04"
+  },
+  "Reset game name back to auto-detected and clear wiki name mapping.": {
+    "translation": "将游戏名称恢复为自动检测值，并清除 Wiki 名称映射。",
+    "state": "reviewed",
+    "source_hash": "a680b1b0e4fa829ca200613683fd03bce265c8f59b37d8a3b1248704a04648bf"
+  },
+  "Override the ReShade DLL name. OptiScaler is installed — RHI will rename ReShade to this filename after OptiScaler is uninstalled.": {
+    "translation": "覆盖 ReShade DLL 名称。当前已安装 OptiScaler — 卸载 OptiScaler 后，RHI 会将 ReShade 重命名为此文件名。",
+    "state": "reviewed",
+    "source_hash": "c154bf66942fa9ac6ed6e9fbb8c2f8f9a664f41de95e6df756393bf6212364ad"
+  },
+  "Could not revert ReShade to dxgi.dll — the filename is occupied by another file. ReShade was renamed to a fallback name instead.": {
+    "translation": "无法将 ReShade 恢复为 dxgi.dll — 该文件名已被其他文件占用。ReShade 已改用备用文件名。",
+    "state": "reviewed",
+    "source_hash": "b206df553e45234fef870a5a08d8c5219b7daaa6849419ae563d11cc41b59221"
+  },
+  "Could not revert Display Commander to its default name — the filename is occupied by another file. DC was kept under its current name.": {
+    "translation": "无法将 Display Commander 恢复为默认名称 — 该文件名已被其他文件占用。DC 将保留当前名称。",
+    "state": "reviewed",
+    "source_hash": "0e3077fb74ca0915df8186b46301898ea3d3217b0bee935afa8065ce20bd523b"
+  },
+  "Included = this game is looked up on the RenoDX and Luma wikis. Excluded = skip wiki lookups for this game.": {
+    "translation": "包含 = 在 RenoDX 和 Luma Wiki 中查询此游戏。排除 = 跳过此游戏的 Wiki 查询。",
+    "state": "reviewed",
+    "source_hash": "7e925fbde4f4218a4987b90b7cd128e0943c4e0bc6467c23e201bf668308fc97"
+  },
+  "Global = use global shader selection. Custom = use custom shader directories. Select = pick per-game packs. Off = no shaders.": {
+    "translation": "全局 = 使用全局着色器选择。自定义 = 使用自定义着色器目录。选择 = 为此游戏选择包。关闭 = 不使用着色器。",
+    "state": "reviewed",
+    "source_hash": "426905bc6ce2f9024f4e5344bfda46e8226105b700bfcf21a85355d487dd58de"
+  },
+  "Override the auto-detected bitness for this game. Auto uses PE header detection. 32-bit or 64-bit forces the value.": {
+    "translation": "覆盖此游戏自动检测到的位数。自动 = 根据 PE 头检测；32 位或 64 位 = 强制指定。",
+    "state": "reviewed",
+    "source_hash": "7e79525b7b54fd42852567b13d97d47191eb7b2ee44c42997b766ad0ac1d297f"
+  },
+  "Override the detected graphics API for this game.\nAuto uses PE header scanning. Reset Overrides reverts to auto-detection.": {
+    "translation": "覆盖为此游戏检测到的图形 API。\n自动 = 使用 PE 头扫描；重置覆盖项 = 恢复自动检测。",
+    "state": "reviewed",
+    "source_hash": "b4ea6e561ac4045e781a0660a21e9042ef70b817aec82701c2a1764e7beba256"
+  },
+  "NVIDIA Override is active — the driver is injecting its own latest DLL for this game. Select any other version to disable the override and deploy that version instead.": {
+    "translation": "NVIDIA Override 已启用 — 驱动正在为此游戏注入其最新 DLL。选择其他任意版本可禁用覆盖并改为部署所选版本。",
+    "state": "reviewed",
+    "source_hash": "661ec1a776eecc5d686e120f62eea25672872b8411b303a66682553db9910b1a"
+  },
+  "Selects which DLL version is copied into the game folder. Default restores the original game DLL. Custom uses your own file from %LocalAppData%\\RHI\\Custom\\DLSS\\. NVIDIA Override lets the driver inject its own latest version instead of a file on disk — equivalent to enabling DLSS Override in NVIDIA App or Profile Inspector.": {
+    "translation": "选择复制到游戏目录的 DLL 版本。默认 = 恢复游戏原始 DLL。自定义 = 使用 %LocalAppData%\\RHI\\Custom\\DLSS\\ 中的自定义文件。NVIDIA Override = 由驱动注入最新版本，而不是使用磁盘文件，相当于在 NVIDIA App 或 Profile Inspector 中启用 DLSS Override。",
+    "state": "reviewed",
+    "source_hash": "a571ac45367f0d2c5e8d2a3679c92009d72ee506f6e54c521defc70303d490d8"
+  },
+  "Selects which DLL version is copied into the game folder. Default restores the original game DLL. Custom uses your own file from %LocalAppData%\\RHI\\Custom\\DLSS\\.": {
+    "translation": "选择复制到游戏目录的 DLL 版本。默认 = 恢复游戏原始 DLL。自定义 = 使用 %LocalAppData%\\RHI\\Custom\\DLSS\\ 中的自定义文件。",
+    "state": "reviewed",
+    "source_hash": "c7d26cedbd9f1cbec437d59e5f01febcab749175d649a80c232c69141262252c"
+  },
+  "Override the DLSS render resolution scale. Off = game controls the scale.\nNamed presets set a fixed percentage. Custom lets you enter any value from 33-100%.": {
+    "translation": "覆盖 DLSS 渲染分辨率比例。关闭 = 由游戏控制比例。\n命名预设会设置固定百分比；自定义可输入 33–100% 的任意值。",
+    "state": "reviewed",
+    "source_hash": "16367b5558ac12ec857ab3bec6560207f886e865f99bae77f0ab207e43cb7a9f"
+  },
+  "Vertical Sync settings — controls how the driver synchronizes frame rendering with your display's refresh rate.": {
+    "translation": "垂直同步设置 — 控制驱动如何让帧渲染与显示器刷新率同步。",
+    "state": "reviewed",
+    "source_hash": "cd40e7d2c9206c0884331c10545edb38aece37b8b3f89f87d54e9fcda8a1d695"
+  },
+  "VSync Tear Control — Standard: normal VSync behavior. Adaptive: VSync on when FPS ≥ refresh rate, off when below (reduces stuttering at low FPS).": {
+    "translation": "VSync 撕裂控制 — 标准：常规 VSync 行为。自适应：FPS ≥ 刷新率时开启 VSync，低于刷新率时关闭（减少低 FPS 下的卡顿）。",
+    "state": "reviewed",
+    "source_hash": "13c7c3716c766984c6c65a3e6097b0ec898a567d6a0a22955d946503954db92b"
+  },
+  "NVIDIA Smooth Motion — driver-level frame generation. Adds interpolated frames for smoother visuals. RTX 40 Series+ required.": {
+    "translation": "NVIDIA Smooth Motion — 驱动级帧生成。通过插入中间帧提升流畅度。需要 RTX 40 系或更新显卡。",
+    "state": "reviewed",
+    "source_hash": "9b689d4833cdcb4a861578d2dd53eeabcfcfa11de0d15e10e32375e99605205d"
+  },
+  "Smooth Motion Enable — Off: disabled. On: enables driver-level frame generation (RTX 40 Series+ only).": {
+    "translation": "Smooth Motion 启用 — 关闭：禁用。开启：启用驱动级帧生成（仅 RTX 40 系或更新显卡）。",
+    "state": "reviewed",
+    "source_hash": "443ff8fe18b2150348bd6e42159ab9c2551ac4a97e4c6b199b73d006ed6bb279"
+  },
+  "Smooth Motion APIs — which graphics APIs Smooth Motion is allowed to hook. None = disabled for all APIs.": {
+    "translation": "Smooth Motion API — 指定允许 Smooth Motion 挂钩的图形 API。无 = 对所有 API 禁用。",
+    "state": "reviewed",
+    "source_hash": "638d121abf6dd8b1ead159900198f2e43ffb102e3696b924b0eaa7fecbc1fd36"
+  },
+  "Flip Pacing — Off: prioritize lower latency. On: prioritize smoother frame pacing. Sets both fullscreen and windowed modes together.": {
+    "translation": "Flip Pacing — 关闭：优先降低延迟。开启：优先获得更平滑的帧节奏。会同时设置全屏和窗口模式。",
+    "state": "reviewed",
+    "source_hash": "374f4d6e757c4677480b12b7a509cae210f03cdbde75fca18c47d754c598e77c"
+  },
+  "Power management, G-Sync control, and profile reset.": {
+    "translation": "电源管理、G-Sync 控制和配置文件重置。",
+    "state": "reviewed",
+    "source_hash": "93e95cd04547b05c76884b76fda00ca8241f029b50984106ae29a2db7b8634a3"
+  },
+  "Power Management — Adaptive: GPU clocks down at idle. Maximum: locks GPU to highest clocks. Optimal: balanced (NVIDIA recommended).": {
+    "translation": "电源管理 — 自适应：空闲时降低 GPU 频率。最高性能：锁定较高频率。最佳：平衡模式（NVIDIA 推荐）。",
+    "state": "reviewed",
+    "source_hash": "84f47c2064540bf808fc9483f04c081cbdc5e26237f46e08a59989ad513beff9"
+  },
+  "Per-game G-Sync control. Disabled forces G-Sync off for this game regardless of global setting.": {
+    "translation": "按游戏控制 G-Sync。禁用后，无论全局设置如何，此游戏都会强制关闭 G-Sync。",
+    "state": "reviewed",
+    "source_hash": "b8297a896ab813db0f4d7e28cf06cc62e469bbaeb82a89181f043ab344e9e57f"
+  },
+  "Restore this game's NVIDIA driver profile to factory defaults. Removes all custom settings (presets, render scale, MFG, driver overrides). This action is irreversible.": {
+    "translation": "将此游戏的 NVIDIA 驱动配置文件恢复为出厂默认值。会删除所有自定义设置（预设、渲染比例、MFG、驱动覆盖）。此操作不可撤销。",
+    "state": "reviewed",
+    "source_hash": "c55aa8901b3696f704a16c749c1a99db531695ee18ec6f5f2dcc1299b113c1dc"
+  },
+  "Resizable BAR — allows the CPU to access full GPU VRAM at once. Can improve performance by 5-10% in some titles. RTX 30+ and BIOS support required.": {
+    "translation": "Resizable BAR — 允许 CPU 一次访问完整 GPU 显存。在部分游戏中可提升约 5–10% 性能。需要 RTX 30 系或更新显卡以及 BIOS 支持。",
+    "state": "reviewed",
+    "source_hash": "09d4aac5741af357dc6e7e93770e37c9c91f846592e4b620d0d7d3a30c0b48af"
+  },
+  "Auto = driver decides. On = force-enable ReBAR. Off = force-disable ReBAR.": {
+    "translation": "自动 = 由驱动决定。开启 = 强制启用 ReBAR。关闭 = 强制禁用 ReBAR。",
+    "state": "reviewed",
+    "source_hash": "c87f9dc9bb67188f8631466704cc6588342a0966a3e29b4d519b07bb857a9689"
+  },
+  "Standard = conservative. Optimized = aggressive driver scheduling (used by NVIDIA-whitelisted titles).": {
+    "translation": "标准 = 保守策略。优化 = 更激进的驱动调度（NVIDIA 白名单游戏使用）。",
+    "state": "reviewed",
+    "source_hash": "c9692223dffd7989fd9f4fc3e1c5a284c22a400564f48f2b9b81452c65b45fa9"
+  }
+}
