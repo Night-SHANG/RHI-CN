@@ -397,14 +397,16 @@ def _transform_ternary_properties(
 
 
 def _transform_dynamic_text_properties(text: str) -> str:
-    """Localize display-only string values while preserving the underlying data value."""
+    """Localize only simple display-text identifiers, not calls or control expressions."""
     pattern = re.compile(
-        r'\bText\s*=\s*(?P<expr>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)'
+        r'\bText\s*=\s*(?P<expr>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)(?=\s*[,};])'
     )
 
     def sub(m: re.Match) -> str:
         expr = m.group("expr")
         if expr.startswith("RenoDXCommander.Services.LocalizationService"):
+            return m.group(0)
+        if not _is_probably_text_expression(expr):
             return m.group(0)
         return (
             "Text = RenoDXCommander.Services.LocalizationService.GetDataString("
@@ -412,7 +414,6 @@ def _transform_dynamic_text_properties(text: str) -> str:
         )
 
     return pattern.sub(sub, text)
-
 
 def _inject_combobox_item_template(text: str) -> str:
     """Use a display-only template so ComboBox values stay stable for program logic."""

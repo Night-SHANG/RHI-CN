@@ -130,3 +130,18 @@ def test_xaml_combobox_uses_localized_display_template_without_changing_items():
     out, _ = transform_xaml(src, "MainWindow.xaml")
     assert 'ItemTemplate="{StaticResource LocalizedComboBoxItemTemplate}"' in out
     assert 'x:Name="ShaderCacheSizeCombo"' in out
+
+
+def test_dynamic_text_transform_does_not_capture_method_call_prefix():
+    src = 'hotkeyBox.Text = HotkeyManager.FormatHotkeyDisplay(vk, shift, ctrl, alt);'
+    out, entries = transform_csharp(src, "SettingsHandler.cs")
+    assert out == src
+    assert entries == {}
+
+
+def test_dynamic_text_transform_does_not_wrap_ternary_condition():
+    src = 'var run = new Run { Text = isOn ? "On" : "Off" };'
+    out, entries = transform_csharp(src, "SettingsHandler.cs")
+    assert 'Text = isOn ?' in out
+    assert 'LocalizationService.GetDataString(isOn)' not in out
+    assert set(entries.values()) == {"On", "Off"}
