@@ -450,7 +450,18 @@ def _transform_tooltips(text: str, relpath: str) -> tuple[str, dict[str, str]]:
                 replacements.append((start, end, f'ToolTipService.SetToolTip({target}, {localized})'))
             continue
 
-        if expr.startswith('$"'):
+        if expr.startswith('$"') and expr.endswith('"'):
+            fmt, args, has_english = _split_interpolated_body(expr[2:-1])
+            if args and has_english:
+                key = _cs_key(relpath, fmt, "ToolTipService.SetToolTip:interpolated")
+                entries[key] = fmt
+                fallback = _encode_csharp_string(fmt)
+                rendered_args = ', '.join(f'$"{{{arg}}}"' for arg in args)
+                localized = (
+                    f'RenoDXCommander.Services.LocalizationService.Format("{key}", "{fallback}"'
+                    + (f', {rendered_args}' if rendered_args else '') + ')'
+                )
+                replacements.append((start, end, f'ToolTipService.SetToolTip({target}, {localized})'))
             continue
 
         if '?' in expr and literal_any.search(expr):
