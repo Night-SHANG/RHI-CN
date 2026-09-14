@@ -1,4 +1,4 @@
-from tools.transform import transform_csharp, scan_csharp_unhandled
+from tools.transform import transform_csharp, transform_xaml, scan_csharp_unhandled
 
 
 def test_localizes_simple_ui_property_literal():
@@ -106,3 +106,27 @@ def test_localizes_concatenated_literal_ui_text_as_one_resource():
     assert "Follow game" in combined
     assert "Preset B" in combined
     assert " +\n" not in out
+
+
+def test_localizes_dynamic_text_identifier_at_display_boundary():
+    src = 'var t = new TextBlock { Text = statusText };'
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert "LocalizationService.GetDataString(statusText)" in out
+    assert entries == {}
+
+
+def test_localizes_interpolated_dynamic_argument_before_formatting():
+    src = 'var t = new TextBlock { Text = $"———  {label}  ———" };'
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert 'LocalizationService.Format(' in out
+    assert 'LocalizationService.GetDataString($"{label}")' in out
+    assert list(entries.values()) == ["———  {0}  ———"]
+
+
+def test_xaml_combobox_uses_localized_display_template_without_changing_items():
+    src = '''<Page xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ComboBox x:Name="ShaderCacheSizeCombo"/>
+</Page>'''
+    out, _ = transform_xaml(src, "MainWindow.xaml")
+    assert 'ItemTemplate="{StaticResource LocalizedComboBoxItemTemplate}"' in out
+    assert 'x:Name="ShaderCacheSizeCombo"' in out
