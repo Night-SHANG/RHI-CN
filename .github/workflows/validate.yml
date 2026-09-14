@@ -65,3 +65,13 @@ jobs:
             Select-Object -ExpandProperty FullName
           Write-Host '=== Tail of diagnostic build log ==='
           if (Test-Path upstream-build.log) { Get-Content upstream-build.log -Tail 600 }
+      - name: Upload upstream diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-integration-diagnostics
+          path: |
+            upstream-build.log
+            upstream/RenoDXCommander/obj/**/output.json
+          if-no-files-found: warn
+          retention-days: 7
