@@ -74,3 +74,35 @@ def test_programmatic_combobox_uses_localized_display_template_without_changing_
     assert "ItemTemplate = RenoDXCommander.Services.LocalizationService.ComboBoxItemTemplate" in out
     assert 'ItemsSource = new[] { "Global", "Select", "Off" }' in out
     assert 'SelectedItem = "Global"' in out
+
+
+def test_update_inclusion_helper_is_treated_as_ui_code():
+    src = 'var button = new Button { Content = "Update Inclusion" };'
+    out, entries = transform_csharp(src, "UpdateInclusionHelper.cs")
+    assert "LocalizationService.GetString" in out
+    assert list(entries.values()) == ["Update Inclusion"]
+
+
+def test_localizes_ternary_ui_property_literals_without_changing_condition():
+    src = 'var button = new Button { Content = isInstalled ? "↺  Reinstall ASI Loader" : "⬇  Install ASI Loader" };'
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert 'Content = isInstalled ?' in out
+    assert out.count("LocalizationService.GetString") == 2
+    assert set(entries.values()) == {"↺  Reinstall ASI Loader", "⬇  Install ASI Loader"}
+
+
+def test_localizes_concatenated_literal_ui_text_as_one_resource():
+    src = '''var text = new TextBlock
+    {
+        Text = "Press Backspace in-game to open the RTX 40 MFG menu.\\n\\n" +
+               "• Follow game — uses the game's own MFG setting\\n" +
+               "• Fixed 2x–6x — forces a specific multiplier\\n" +
+               "• Dynamic — targets the display refresh rate or a custom FPS value\\n\\n" +
+               "If frames freeze above 2x, try setting Frame Generation to Preset B in the NVIDIA App."
+    };'''
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert out.count("LocalizationService.GetString") == 1
+    combined = next(iter(entries.values()))
+    assert "Follow game" in combined
+    assert "Preset B" in combined
+    assert " +\n" not in out
