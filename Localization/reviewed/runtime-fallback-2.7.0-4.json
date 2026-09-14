@@ -1,0 +1,162 @@
+{
+  "FPS cap for this game. Select a VRR preset or Custom for a manual value.": {
+    "translation": "此游戏的 FPS 上限。选择 VRR 预设，或选择“自定义”手动输入数值。",
+    "state": "reviewed",
+    "source_hash": "b524c9f5e9fd515e2461235ebf4c0db4299a18bd1365f9487c75f982b392d4a1"
+  },
+  "Shows DLSS version/preset info on the ReLimiter OSD. Disable if causing crashes.": {
+    "translation": "在 ReLimiter OSD 上显示 DLSS 版本/预设信息。如果导致崩溃，请禁用。",
+    "state": "reviewed",
+    "source_hash": "9161dd2571e8f38181aad696124d41c0e6b25d6f5793364914be688e70d42bbb"
+  },
+  "Framerate limit using Reflex whenever possible. 'Off' disables the limit.": {
+    "translation": "尽可能使用 Reflex 限制帧率。“关闭”会禁用帧率限制。",
+    "state": "reviewed",
+    "source_hash": "f5232b84cb0dc659c6c5155f70b09d420190639662277f47a9532462492a6394"
+  },
+  "Stable: official release. Nightly: daily build. DLSS NR: Neural Rendering fork with multi-pass NR support.": {
+    "translation": "稳定版：正式发布版。夜间版：每日构建。DLSS NR：支持多次 NR 的 Neural Rendering 分支。",
+    "state": "reviewed",
+    "source_hash": "42030ba1bccc1473ef84c55495b6ae1f65f20cec9852eb132d171d599d82682e"
+  },
+  "Select which graphics API's upscaler to configure.": {
+    "translation": "选择要配置哪个图形 API 的升频器。",
+    "state": "reviewed",
+    "source_hash": "37e0344a3c0c409ec4fec5c69a879c3e0387a708f669dc2550374718a282933b"
+  },
+  "Upscaler for the selected API. 'Auto' lets OptiScaler choose based on your GPU.": {
+    "translation": "所选 API 使用的升频器。“自动”让 OptiScaler 根据 GPU 自动选择。",
+    "state": "reviewed",
+    "source_hash": "c56c9f738f56031ec6ea8b6de19ef3bb8e3757e678eb22be75fbe83032c4ea0d"
+  },
+  "Deploys Streamline and DLSS Enabler to the game's OptiScaler folder. Required for DLSS Frame Generation with OptiScaler.": {
+    "translation": "将 Streamline 和 DLSS Enabler 部署到游戏的 OptiScaler 目录。使用 OptiScaler 进行 DLSS 帧生成时需要此项。",
+    "state": "reviewed",
+    "source_hash": "304cb896de29fb05189f88a6e3de35edfabf4c6d7862586b0a05ddd9c173bd38"
+  },
+  "HUD Fix: enables hudless resource tracking for Frame Generation. On = HUDFix=true in [OptiFG].": {
+    "translation": "HUD 修复：为帧生成启用无 HUD 资源跟踪。开启 = 在 [OptiFG] 中设置 HUDFix=true。",
+    "state": "reviewed",
+    "source_hash": "f6858bee8708a93000c4e0970b3d18fdc5f39f19e28c73cca437942686a53eaf"
+  },
+  "Only relevant when FG Output = DLSSG. Enabler requires Deploy Streamline + Deploy DLSS Enabler.": {
+    "translation": "仅在 FG Output = DLSSG 时相关。Enabler 需要同时部署 Streamline 和 DLSS Enabler。",
+    "state": "reviewed",
+    "source_hash": "d033ba4ad9d2dee65acf0866aabbaf3b46f6b777f19258ac54fec15ba3e391e1"
+  },
+  "DLSS Super Resolution render preset. J-M are the recommended modern presets.": {
+    "translation": "DLSS 超分辨率渲染预设。推荐使用较新的 J–M 预设。",
+    "state": "reviewed",
+    "source_hash": "bbe5d36af96b3be6e564519153531f6089dd557fee189ecd7b79c52b84c8f99e"
+  },
+  "DLSS Ray Reconstruction render preset.": {
+    "translation": "DLSS 光线重建渲染预设。",
+    "state": "reviewed",
+    "source_hash": "a45b05d225844299e864f5d073d98f67b7a6b7ef9c31a417996604efeea2cfd2"
+  },
+  "On: DisableFlipMetering=true — fixes thick frametime graph with NukemFG + fakenvapi.": {
+    "translation": "开启：DisableFlipMetering=true — 修复 NukemFG + fakenvapi 下帧时间曲线过粗的问题。",
+    "state": "reviewed",
+    "source_hash": "abc6b850fa3f1e763fbc5e3c024f99fcb2ad9360526952abedcf277f6ff1a7d0"
+  },
+  "Override the internal render resolution. Off = use in-game quality preset as-is.": {
+    "translation": "覆盖内部渲染分辨率。关闭 = 按原样使用游戏内画质预设。",
+    "state": "reviewed",
+    "source_hash": "149f2f094c942d8c17d655c4e1277c2aa49c5feb92b9a07e7398b01ee5eb23d6"
+  },
+  "Off: r.NGX.DLSS.DilateMotionVectors=0 + r.Streamline.DilateMotionVectors=0": {
+    "translation": "关闭：r.NGX.DLSS.DilateMotionVectors=0 + r.Streamline.DilateMotionVectors=0",
+    "state": "reviewed",
+    "source_hash": "0eaf18b8acb70e0715379202fd621532ad936d027ff3958a9b335de932c87759"
+  },
+  "FSR2: r.FidelityFX.FSR2.UseNativeDX12=1\nFSR3: r.FidelityFX.FSR3.UseNativeDX12=1\nFSR3.1: above + r.FidelityFX.FSR3.UseRHI=0": {
+    "translation": "FSR2：r.FidelityFX.FSR2.UseNativeDX12=1\nFSR3：r.FidelityFX.FSR3.UseNativeDX12=1\nFSR3.1：以上设置 + r.FidelityFX.FSR3.UseRHI=0",
+    "state": "reviewed",
+    "source_hash": "8b01f50cdf6b0b7d5493740cd400fe126111305ec101e770ac18b0d357b05f72"
+  },
+  "On: r.FidelityFX.FI.OverrideSwapChainDX12=1": {
+    "translation": "开启：r.FidelityFX.FI.OverrideSwapChainDX12=1",
+    "state": "reviewed",
+    "source_hash": "e2c7a54eb16448003ce755f8b79a88298fad2104788ee94ea1552818b887d632"
+  },
+  "On: r.AntiAliasingMethod=4 + r.TemporalAA.Upscaler=1": {
+    "translation": "开启：r.AntiAliasingMethod=4 + r.TemporalAA.Upscaler=1",
+    "state": "reviewed",
+    "source_hash": "08629fa5c64db600813fcc16a60f2da25ecccf2bfa1acf8a9c855d73b8bfbf0e"
+  },
+  "NR runtime: 310.8.2 = original NVIDIA (RTX 50). 310.8.SF-v2 = ShortFuse cross-gen (RTX 20/30/40).": {
+    "translation": "NR 运行时：310.8.2 = NVIDIA 原版（RTX 50）；310.8.SF-v2 = ShortFuse 跨代版（RTX 20/30/40）。",
+    "state": "reviewed",
+    "source_hash": "63d95f02e36841192f4ff162e5631053dfb045b76744a56595b1bb92ac022b89"
+  },
+  "Enable DLSS Neural Rendering. Requires nvngx_dlssnr.dll + nvngx.dll_dlssnr.dll in game folder.": {
+    "translation": "启用 DLSS Neural Rendering。游戏目录中需要 nvngx_dlssnr.dll + nvngx.dll_dlssnr.dll。",
+    "state": "reviewed",
+    "source_hash": "97866b4f68c01184cf938f4eb52a777ce64a494beb427276187f489fb9134568"
+  },
+  "Run NR before Super Resolution. On = before upscaling; Off = after upscaling.": {
+    "translation": "在超分辨率之前运行 NR。开启 = 升频前；关闭 = 升频后。",
+    "state": "reviewed",
+    "source_hash": "f8ac26a0fe0f6b7e8e3addfea67c30b2405dc2fbf50e370cbb60e0665697a98e"
+  },
+  "Number of NR model passes. Each extra pass costs ~2x the model time but increases quality.": {
+    "translation": "NR 模型执行次数。每增加一次大约会使模型耗时翻倍，但可提高质量。",
+    "state": "reviewed",
+    "source_hash": "e450e72c5b792c546dd50cdf0a60f093f9ea818465cfcf8635973e6ed994df32"
+  },
+  "Model work resolution as a fraction of frame size. Lower = faster; above 1.0 supersamples the model.": {
+    "translation": "模型工作分辨率相对于画面尺寸的比例。越低越快；高于 1.0 会对模型进行超采样。",
+    "state": "reviewed",
+    "source_hash": "5021a2528de84271767e1dcd4ff762b366bc1592e766ab5ec700ae05add487a6"
+  },
+  "Apply NR to the finished picture (after all game lighting and effects). Helps with green noise. DX12 native only.": {
+    "translation": "对最终画面应用 NR（在所有游戏光照和特效之后）。可帮助减少绿色噪点。仅支持原生 DX12。",
+    "state": "reviewed",
+    "source_hash": "d54dfcc87173bd447c34fb15646c297fbb5342bfb4ca230836661ea157da4665"
+  },
+  "Save current cog settings into this slot": {
+    "translation": "将当前齿轮设置保存到此槽位",
+    "state": "reviewed",
+    "source_hash": "7ce6a98c991097c0d6870a0faf99428df46b514f60d7cd8cd777ffdbc2579c33"
+  },
+  "Apply this preset to the current game": {
+    "translation": "将此预设应用到当前游戏",
+    "state": "reviewed",
+    "source_hash": "2fecfd8b5243834a2761d7806512d33518a22bef2f7aaaaf5c7faf250297f407"
+  },
+  "Sets Vulkan/OpenGL Present Method to 'Preferred layered on DXGI Swapchain' in the NVIDIA driver profile. Recommended for DXVK — improves compatibility and HDR support.": {
+    "translation": "在 NVIDIA 驱动配置文件中将 Vulkan/OpenGL Present Method 设置为“Preferred layered on DXGI Swapchain”。推荐用于 DXVK，可改善兼容性和 HDR 支持。",
+    "state": "reviewed",
+    "source_hash": "c368774a9f85c7a9787a820692a1392ddc3c77ad307f3a5cc63237968337332d"
+  },
+  "Standard: Treat DXVK as Native (0x000802A5). Alternative: Allow DXVK Promotion + DirectFlip (0x00080004). Only active when Prefer DXGI Swapchain is Yes.": {
+    "translation": "标准：将 DXVK 视为原生（0x000802A5）。替代：允许 DXVK Promotion + DirectFlip（0x00080004）。仅在 Prefer DXGI Swapchain = 是 时生效。",
+    "state": "reviewed",
+    "source_hash": "695d76e82f12f3ade9d0089aa5ae3af9ffda722f3b49f81204275afa6bb849d1"
+  },
+  "Standard (0x000802A5): Treat DXVK as Native\nAlternative (0x00080004): Allow DXVK Promotion + DirectFlip": {
+    "translation": "标准（0x000802A5）：将 DXVK 视为原生\n替代（0x00080004）：允许 DXVK Promotion + DirectFlip",
+    "state": "reviewed",
+    "source_hash": "5e058114588e5c19d491d0d46fc8900aaef9ad709f4aca2f396baa9fbe2fa579"
+  },
+  "Skipped — v1.x DLSS/Streamline not compatible with newer versions": {
+    "translation": "已跳过 — v1.x DLSS/Streamline 与较新版本不兼容",
+    "state": "reviewed",
+    "source_hash": "1c47475d7bfa8df4d93197a6197334119bcafaf13242fa2a558ad0343d983cac"
+  },
+  "Default = application controls frame generation. Fixed = always generate a fixed multiplier of frames. Dynamic = generate up to a target frame rate.": {
+    "translation": "默认 = 由应用控制帧生成。固定 = 始终按固定倍数生成帧。动态 = 根据目标帧率动态生成。",
+    "state": "reviewed",
+    "source_hash": "6c5f53ed04bc0a7db4db9d7c73f95f4d2b17d44b94ceceb126f2271998c42145"
+  },
+  "Fixed: exact frame multiplier (2x-6x). Dynamic: maximum frames the driver may generate (Up to 3x-6x). 50 Series GPUs only for 3x+.": {
+    "translation": "固定：精确帧倍数（2x–6x）。动态：驱动可生成的最大帧数（最高 3x–6x）。3x 以上仅支持 RTX 50 系显卡。",
+    "state": "reviewed",
+    "source_hash": "ff65357f467955711956b75f7b621a30090094a6a23e00dabcf1abe703f4d3fb"
+  },
+  "The target output frame rate for dynamic frame generation. Only active in Dynamic mode.": {
+    "translation": "动态帧生成的目标输出帧率。仅在动态模式下生效。",
+    "state": "reviewed",
+    "source_hash": "120b67f68c92d372107ef5828cf0238299dc306323230fe25977f898e0df580e"
+  }
+}
