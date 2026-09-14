@@ -1,0 +1,162 @@
+{
+  "Click to cycle engine version (affects DOF Fix eligibility)": {
+    "translation": "点击切换引擎版本（影响 DOF 修复是否可用）",
+    "state": "reviewed",
+    "source_hash": "3824ed3717b0889136bc56e04e4c5febd052e9512d8bb20b2a4b428f64c0fb28"
+  },
+  "Ultimate ASI Loader — proxy DLL that loads .asi plugins into game processes.": {
+    "translation": "Ultimate ASI Loader — 用于将 .asi 插件加载到游戏进程中的代理 DLL。",
+    "state": "reviewed",
+    "source_hash": "3ca6d078e61a14b87776c0b24be1416e1d2b0b7664d71d5cad64462356d0e250"
+  },
+  "Open Ultimate ASI Loader GitHub releases page": {
+    "translation": "打开 Ultimate ASI Loader 的 GitHub Releases 页面",
+    "state": "reviewed",
+    "source_hash": "f9e8d27161a58367688c79519835928bcaa20bae21cc9230a1b722968e1ef237"
+  },
+  "ASI Loader settings (coming soon)": {
+    "translation": "ASI Loader 设置（即将推出）",
+    "state": "reviewed",
+    "source_hash": "a27f79c360a50255ce8b5d5d46401f244576587dfa2c5783c14ef86c0b95ecde"
+  },
+  "Remove Ultimate ASI Loader from this game": {
+    "translation": "从此游戏移除 Ultimate ASI Loader",
+    "state": "reviewed",
+    "source_hash": "85b789ca2c43aad5b53c5043e949f16e3f61c7293df7086c125df146f8f794bc"
+  },
+  "MFG Ada Unlock — unlocks DLSS Multi Frame Generation (3x/4x+) on RTX 40-series GPUs. Requires ReShade. In-memory only, no files modified.": {
+    "translation": "MFG Ada Unlock — 在 RTX 40 系显卡上解锁 DLSS 多帧生成（3x/4x+）。需要 ReShade。仅在内存中生效，不修改文件。",
+    "state": "reviewed",
+    "source_hash": "aa32583131eae0a54293a1fd4fd1135a986f335bf0a887e0f9797b276ba5aded"
+  },
+  "Click to open GitHub releases": {
+    "translation": "点击打开 GitHub Releases",
+    "state": "reviewed",
+    "source_hash": "2ab250e00720d4eeca54d70234d4f2c7dd84b8f0b930f57d80a0c97cbb91ac4a"
+  },
+  "Open MFG Ada Unlock GitHub page": {
+    "translation": "打开 MFG Ada Unlock 的 GitHub 页面",
+    "state": "reviewed",
+    "source_hash": "beb33288231747109f3ed5075723487c0939552a9fa5d7ba50f8310d615c775a"
+  },
+  "Install ReShade first — MFG Ada Unlock requires it": {
+    "translation": "请先安装 ReShade — MFG Ada Unlock 需要它",
+    "state": "reviewed",
+    "source_hash": "6346861ba7c77ba63a9252953c6ff719e9ee65ca02262d92240dfd09b33f18db"
+  },
+  "RTX 40 MFG Unlock (ASI version) is already installed and conflicts. Remove it first.": {
+    "translation": "已安装 RTX 40 MFG Unlock（ASI 版），存在冲突。请先将其移除。",
+    "state": "reviewed",
+    "source_hash": "da23af6bb8ce10198360ef9018f49c150106e128b21cccdb835196bac6e19444"
+  },
+  "MFG Ada Unlock not yet downloaded — open the addon picker first to download it": {
+    "translation": "尚未下载 MFG Ada Unlock — 请先打开附加组件选择器进行下载",
+    "state": "reviewed",
+    "source_hash": "ee51633407f5433cf311b7905f5fb094419ec2e7e1c79f994052a002187039c8"
+  },
+  "MFG Ada Unlock settings": {
+    "translation": "MFG Ada Unlock 设置",
+    "state": "reviewed",
+    "source_hash": "2be2e7d3db853e4ee94ddcc71e02bd9077e0d8a6ea14017092c0b7037dd8d707"
+  },
+  "Remove MFG Ada Unlock from this game": {
+    "translation": "从此游戏移除 MFG Ada Unlock",
+    "state": "reviewed",
+    "source_hash": "00257f6a7d9c749b630ad9920b5bc9e3ca6e0c75cede1ce525cd59c01b696528"
+  },
+  "Click to open OptiScaler wiki": {
+    "translation": "点击打开 OptiScaler Wiki",
+    "state": "reviewed",
+    "source_hash": "c697b455e1af4f070b52125350e5a3f094ca00c9dd9e394b7a3f80a49f74497a"
+  },
+  "Remove OptiScaler": {
+    "translation": "移除 OptiScaler",
+    "state": "reviewed",
+    "source_hash": "a82d1e9b8e6ca544eb61e2f68d3704e455b654a51965d4d8f7843e8935671214"
+  },
+  "This filename is already used by an RHI-managed component (ReShade, OptiScaler, or DC). Choose a different name.": {
+    "translation": "此文件名已被 RHI 管理的组件（ReShade、OptiScaler 或 DC）占用。请选择其他名称。",
+    "state": "reviewed",
+    "source_hash": "efa70466061104a99ae4a30b9262756e1b1b9854593b384ddddeae27163a8834"
+  },
+  "20/30 FG Unlock — enables DLSS Frame Generation on RTX 20 and 30 series GPUs. D3D12 only. No ASI Loader or ReShade required.": {
+    "translation": "20/30 FG Unlock — 在 RTX 20/30 系显卡上启用 DLSS 帧生成。仅支持 D3D12。不需要 ASI Loader 或 ReShade。",
+    "state": "reviewed",
+    "source_hash": "3f2a77cbb3a8294bd1468c25fa7cbd4c2f1664731666070cae19d7e7602582ed"
+  },
+  "Open 20/30 FG Unlock GitHub page": {
+    "translation": "打开 20/30 FG Unlock 的 GitHub 页面",
+    "state": "reviewed",
+    "source_hash": "5341e02a8f668f168b1d383fc6004c7bc6b52a14d3a43334d00e26ef54ac0a7b"
+  },
+  "MFG Ada Unlock (addon) is installed and conflicts. Remove it from the addon picker first.": {
+    "translation": "已安装 MFG Ada Unlock（附加组件），存在冲突。请先在附加组件选择器中将其移除。",
+    "state": "reviewed",
+    "source_hash": "b6933501ee208b77184ef17fd94928ea19155366965a5629d42a3a6d270e1e12"
+  },
+  "Select GPU generation": {
+    "translation": "选择 GPU 世代",
+    "state": "reviewed",
+    "source_hash": "d05491555095e2ac036c794224d1a4de5478fb85b32179b6cd695f9c7dac5fd0"
+  },
+  "Remove 20/30 FG Unlock from this game": {
+    "translation": "从此游戏移除 20/30 FG Unlock",
+    "state": "reviewed",
+    "source_hash": "1185653def09788fd341ee93d6e687bea852c15b18be16ed1326c3eb8ca6555e"
+  },
+  "This filename is already used by an RHI-managed component. Choose a different name.": {
+    "translation": "此文件名已被 RHI 管理的组件占用。请选择其他名称。",
+    "state": "reviewed",
+    "source_hash": "81e0b9f8324dfde2dbdcefa01a176ddb613b9b2441740ee1a23ab1209c52fd45"
+  },
+  "RTX 40 MFG Unlock — enables DLSS Multi Frame Generation multipliers beyond 2x (up to 6x) on RTX 40 Series GPUs. Standalone DLL, no ASI Loader required.": {
+    "translation": "RTX 40 MFG Unlock — 在 RTX 40 系显卡上启用超过 2x 的 DLSS 多帧生成倍数（最高 6x）。独立 DLL，无需 ASI Loader。",
+    "state": "reviewed",
+    "source_hash": "24a4bfcf5535f87d9f57296096611e9b57d0db3cffb0a91df93febe991444ac5"
+  },
+  "Open RTX 40 MFG Unlock GitHub page": {
+    "translation": "打开 RTX 40 MFG Unlock 的 GitHub 页面",
+    "state": "reviewed",
+    "source_hash": "ddbe0931f7f307ac57e6d1f2d48130675eb3d2be4ac7745cd5c4996f706b79e5"
+  },
+  "MFG Ada Unlock (addon) is already installed and conflicts with RTX 40 MFG Unlock. Remove it from the addon picker first.": {
+    "translation": "已安装 MFG Ada Unlock（附加组件），与 RTX 40 MFG Unlock 冲突。请先在附加组件选择器中将其移除。",
+    "state": "reviewed",
+    "source_hash": "4663f996976850e1dbe2bdc970bb8fd03f4ccdf92e956c4000fd5aead6fc24c6"
+  },
+  "RTX 40 MFG settings — configure multiplier mode": {
+    "translation": "RTX 40 MFG 设置 — 配置倍数模式",
+    "state": "reviewed",
+    "source_hash": "2480583b8c870821974b342566baac5523fd1459d9ae412c39e2fc703577e2d8"
+  },
+  "Remove RTX 40 MFG Unlock from this game": {
+    "translation": "从此游戏移除 RTX 40 MFG Unlock",
+    "state": "reviewed",
+    "source_hash": "0a1b624107ee11bcc2751e6ee40399e945fb388cecec21e675e26a446b20dc0b"
+  },
+  "DLSS Enabler — standalone proxy DLL that enables DLSS in games that don't natively support it.": {
+    "translation": "DLSS Enabler — 独立代理 DLL，可在原生不支持 DLSS 的游戏中启用 DLSS。",
+    "state": "reviewed",
+    "source_hash": "50e0b76365aef4578f6cb32bdd821b943d07da5224439205a55e4f266db7ef7d"
+  },
+  "Open DLSS Enabler Nexus page": {
+    "translation": "打开 DLSS Enabler 的 Nexus 页面",
+    "state": "reviewed",
+    "source_hash": "20e637e6c287d953c4297779d9299d1ea101aa6559f7b2c63237065a14a72f52"
+  },
+  "Cannot install alongside OptiScaler — DLSS Enabler is already included within OptiScaler": {
+    "translation": "无法与 OptiScaler 同时安装 — OptiScaler 已内置 DLSS Enabler",
+    "state": "reviewed",
+    "source_hash": "bfa7a79d3496ee8c6bdca368a624e9e66c5f567b2b2fd19c7ca76cf1bcb2fab4"
+  },
+  "Remove standalone DLSS Enabler from this game": {
+    "translation": "从此游戏移除独立版 DLSS Enabler",
+    "state": "reviewed",
+    "source_hash": "92d581171e68b88d6fd08caef27028db5ba7c358c58fef053f6f5747e8cd174b"
+  },
+  "dxgi.dll may conflict with ReShade or OptiScaler if they also use this name.": {
+    "translation": "如果 ReShade 或 OptiScaler 也使用此名称，dxgi.dll 可能发生冲突。",
+    "state": "reviewed",
+    "source_hash": "c24bbef3ae29b5afc677aec026a414553f1d3fa5a574e210f904642599c526af"
+  }
+}
