@@ -45,8 +45,8 @@ jobs:
         run: git clone --depth 1 https://github.com/RankFTW/RHI.git upstream
       - name: Materialize localization overlay
         run: python tools/materialize.py --source upstream --repo .
-      - name: Validate complete fallback resources
-        run: python tools/check_localization.py --source upstream --repo .
+      - name: Validate complete localization coverage
+        run: python tools/check_localization.py --source upstream --repo . --strict --no-fallback
       - name: Build and run upstream tests
         shell: pwsh
         run: dotnet test upstream\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64 -v:diag 2>&1 | Tee-Object -FilePath upstream-build.log; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
