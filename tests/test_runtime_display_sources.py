@@ -22,6 +22,14 @@ def test_concatenated_tooltip_literals_become_one_resource():
     assert list(entries.values()) == ["First line. Second line."]
 
 
+def test_interpolated_tooltip_uses_localized_format_without_changing_argument():
+    src = 'ToolTipService.SetToolTip(button, $"Installed as: {currentDllName}\\nClick to open GitHub releases");'
+    out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert "LocalizationService.Format" in out
+    assert '$"{currentDllName}"' in out
+    assert list(entries.values()) == ["Installed as: {0}\nClick to open GitHub releases"]
+
+
 def test_tooltip_source_property_is_collected_without_changing_program_value():
     src = 'card.DxvkToggleTooltip = "DXVK is unavailable for this game.";'
     out, entries = transform_csharp(src, "Models/GameCard.cs")
