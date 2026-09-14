@@ -22,6 +22,8 @@ def test_concatenated_tooltip_literals_become_one_resource():
     assert list(entries.values()) == ["First line. Second line."]
 
 
+# Regression guard for R4: interpolated hover text must be localized without
+# changing the runtime value that is inserted into the tooltip.
 def test_interpolated_tooltip_uses_localized_format_without_changing_argument():
     src = 'ToolTipService.SetToolTip(button, $"Installed as: {currentDllName}\\nClick to open GitHub releases");'
     out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
