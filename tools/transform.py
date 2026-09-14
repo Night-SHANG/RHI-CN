@@ -75,13 +75,17 @@ def transform_xaml(text: str, relpath: str) -> tuple[str, dict[str, str]]:
         # attached DependencyProperty cannot be assigned to the root Window.
         if tag.startswith("/") or tag in {"Run", "Window"}:
             return m.group(0)
+        combo_template_added = False
+        if tag == "ComboBox" and not re.search(r'\bItemTemplate\s*=', attrs):
+            attrs += ' ItemTemplate="{StaticResource LocalizedComboBoxItemTemplate}"'
+            combo_template_added = True
         found: list[tuple[str, str]] = []
         for attr in LOCALIZABLE_ATTRS:
             am = re.search(rf'(?<![\w:.]){re.escape(attr)}\s*=\s*"([^"]*)"', attrs)
             if am and _valid_literal(am.group(1)):
                 found.append((attr, html.unescape(am.group(1))))
         if not found:
-            return m.group(0)
+            return f'<{tag}{attrs}{close}>' if combo_template_added else m.group(0)
         um = re.search(r'l:Uids\.Uid\s*=\s*"([^"]+)"', attrs)
         if um:
             uid = um.group(1)
@@ -277,6 +281,15 @@ def _interpolated_context(text: str, start: int) -> tuple[str, str] | None:
     return None
 
 
+def _is_probably_text_expression(expr: str) -> bool:
+    expr = expr.strip()
+    if not re.fullmatch(r'(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*', expr):
+        return False
+    tail = expr.rsplit('.', 1)[-1].lower()
+    exact = {"text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status"}
+    return tail in exact or tail.endswith(("text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status"))
+
+
 def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, str]]:
     entries: dict[str, str] = {}
     replacements: list[tuple[int, int, str]] = []
@@ -285,7 +298,9 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
         if not context:
             continue
         fmt, args, has_english = _split_interpolated_body(body)
-        if not has_english or not args:
+        if not args:
+            continue
+        if not has_english and not any(_is_probably_text_expression(expr) for expr in args):
             continue
         kind, name = context
         key = _cs_key(relpath, fmt, f'interpolated:{kind}:{name}')
@@ -453,6 +468,6 @@ def scan_csharp_unhandled(text: str, relpath: str) -> list[dict[str, str]]:
         if not _interpolated_context(text, start):
             continue
         fmt, args, has_english = _split_interpolated_body(body)
-        if has_english and args:
+        if args and (has_english or any(_is_probably_text_expression(expr) for expr in args)):
             findings.append({"file": relpath, "text": body, "format": fmt, "kind": "interpolated"})
     return findings
