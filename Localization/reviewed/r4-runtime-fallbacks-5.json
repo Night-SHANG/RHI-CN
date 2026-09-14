@@ -1,0 +1,57 @@
+{
+  "Off [Latency]": {
+    "translation": "关闭 [延迟]",
+    "state": "reviewed",
+    "source_hash": "b0912f22f0bb0e6513925b5032f0ecf9dceb8b9bde040b31410f4508f082d7a1"
+  },
+  "Reinstall Ultimate ASI Loader (currently '{0}')": {
+    "translation": "重新安装 Ultimate ASI Loader（当前为“{0}”）",
+    "state": "reviewed",
+    "source_hash": "7e3af9df3cb8dce5a275641a4fc8565f035fee43a95a289a87235a344705b566"
+  },
+  "Press a key to assign it, or Backspace to clear it. Written to all reshade*.ini files for this game.": {
+    "translation": "按下按键进行分配，或按 Backspace 清除。该设置会写入此游戏的所有 reshade*.ini 文件。",
+    "state": "reviewed",
+    "source_hash": "6606959efe1907d89288b02e99bbdf6779e43e8f0d8cfb6f1b0ac3519d7c0b1e"
+  },
+  "Uninstall Neural Rendering first to change the addon version.": {
+    "translation": "请先卸载 Neural Rendering，再更改插件版本。",
+    "state": "reviewed",
+    "source_hash": "b3f751d1cc6d2efbe519e39af7093bd6dd94ac11133cfe798d570eb688c34fdb"
+  },
+  "{0} applied to {1} game{2}.": {
+    "translation": "已将 {0} 应用于 {1} 个游戏。",
+    "state": "reviewed",
+    "source_hash": "952c8896709eb2fbb94ae6a52c178e4bedc82521b24cdaaa5e05f2c4fb0c5cd0"
+  },
+  "Addon version to install. 'Latest' always installs the newest available and auto-updates.": {
+    "translation": "要安装的插件版本。“最新”始终安装最新可用版本并自动更新。",
+    "state": "reviewed",
+    "source_hash": "fe5bbdb3b9546638a0792ac225e4bee85b4b9eb25c4d34fa90092d0566b96313"
+  },
+  "Reinstall DLSS Enabler (currently '{0}')": {
+    "translation": "重新安装 DLSS Enabler（当前为“{0}”）",
+    "state": "reviewed",
+    "source_hash": "71241d7e9759c34ffcec661d164088d1b6cbaff8c35ce73d5b4b82ff2d00324b"
+  },
+  "Reinstall 20/30 FG Unlock (currently deployed as {0})": {
+    "translation": "重新安装 20/30 FG Unlock（当前部署为 {0}）",
+    "state": "reviewed",
+    "source_hash": "5bd82546c117222e7fb843c86bf54dc7f48a7665a420d599f75ac3fbb017b913"
+  },
+  "Reinstall RTX 40 MFG Unlock (currently deployed as {0})": {
+    "translation": "重新安装 RTX 40 MFG Unlock（当前部署为 {0}）",
+    "state": "reviewed",
+    "source_hash": "4d9c29c3fd0748b7441122d317ff42213c7e5c77ce3d119ea097047e489f25a6"
+  },
+  "Latest": {
+    "translation": "最新",
+    "state": "reviewed",
+    "source_hash": "8730d3c2022abf1f9665e4ca1da43e4d068843482053675af19176b0f6f51a3e"
+  },
+  "Press a key to assign it, or Backspace to clear it.": {
+    "translation": "按下按键进行分配，或按 Backspace 清除。",
+    "state": "reviewed",
+    "source_hash": "593b2f0dd6bd32d7e985dc0d02cb9cb804a71f2ebf0f727a889f9b6039d88fd4"
+  }
+}
