@@ -37,6 +37,7 @@ def test_ternary_tooltip_localizes_interpolated_false_branch_without_invalid_dol
         ? "RTX 40 MFG Unlock is already installed."
         : $"Disable {mutualExclusivePeer} first to enable this addon.");'''
     out, entries = transform_csharp(src, "AddonPopupHelper.cs")
+    assert out.count("ToolTipService.SetToolTip") == 1
     assert "$RenoDXCommander.Services.LocalizationService" not in out
     assert "LocalizationService.Format" in out
     assert "LocalizationService.GetString" in out
@@ -50,6 +51,7 @@ def test_ternary_tooltip_localizes_interpolated_true_branch_without_invalid_doll
         ? $"Reinstall Ultimate ASI Loader (currently '{installedAs}')"
         : "Install Ultimate ASI Loader — choose which DLL name to use");'''
     out, entries = transform_csharp(src, "DetailPanelBuilder.Extras.cs")
+    assert out.count("ToolTipService.SetToolTip") == 1
     assert "$RenoDXCommander.Services.LocalizationService" not in out
     assert "LocalizationService.Format" in out
     assert "LocalizationService.GetString" in out
