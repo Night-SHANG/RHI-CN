@@ -268,11 +268,19 @@ def materialize(source_root: Path, repo_root: Path, release_version: str | None 
 
     english: dict[str, str] = {}
     unhandled: list[dict] = []
+    combobox_display_member_names: set[str] = set()
+    for cs_path in sorted(project.rglob("*.cs")):
+        if any(part in {"obj", "bin"} for part in cs_path.parts):
+            continue
+        cs_text = cs_path.read_text(encoding="utf-8")
+        combobox_display_member_names.update(
+            re.findall(r'\b([A-Za-z_]\w*)\.DisplayMemberPath\s*=', cs_text)
+        )
     for path in sorted(project.rglob("*.xaml")):
         if any(part in {"obj", "bin"} for part in path.parts):
             continue
         rel = path.relative_to(source_root).as_posix()
-        text, entries = transform_xaml(path.read_text(encoding="utf-8"), rel)
+        text, entries = transform_xaml(path.read_text(encoding="utf-8"), rel, skip_combobox_item_templates=combobox_display_member_names)
         path.write_text(text, encoding="utf-8")
         english.update(entries)
     for path in sorted(project.rglob("*.cs")):
