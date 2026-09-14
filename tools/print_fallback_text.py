@@ -22,7 +22,8 @@ def main() -> int:
     rows = []
     for key in report.get("fallback_keys", []):
         rows.append({"key": key, "source": english.get(key, "<missing>")})
-    print(json.dumps(rows, ensure_ascii=False, indent=2))
+    # Use ASCII escapes because Windows Actions may expose a legacy console code page.
+    print(json.dumps(rows, ensure_ascii=True, indent=2))
     return 0
 
 
