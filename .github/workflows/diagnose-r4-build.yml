@@ -1,0 +1,64 @@
+name: Diagnose R4 Build
+
+on:
+  push:
+    branches: [fix/runtime-localization-r4]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUTF8: '1'
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Clone current RHI main
+        shell: pwsh
+        run: git clone --depth 1 https://github.com/RankFTW/RHI.git upstream
+      - name: Materialize localization overlay
+        run: python tools/materialize.py --source upstream --repo .
+      - name: Capture build diagnostics
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostics | Out-Null
+          dotnet test upstream\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64 -v:minimal *> upstream-build.log
+          $buildExit = $LASTEXITCODE
+
+          "Build exit code: $buildExit" | Set-Content diagnostics\r4-build.txt -Encoding utf8
+          "=== Filtered compiler errors ===" | Add-Content diagnostics\r4-build.txt -Encoding utf8
+          Get-Content upstream-build.log -ErrorAction SilentlyContinue |
+            Where-Object { $_ -match '(?i)(\berror\b|XAML|MSB[0-9]{4}|CS[0-9]{4})' } |
+            Select-Object -Last 500 |
+            Add-Content diagnostics\r4-build.txt -Encoding utf8
+
+          "=== XAML compiler output.json ===" | Add-Content diagnostics\r4-build.txt -Encoding utf8
+          Get-ChildItem upstream\RenoDXCommander\obj -Recurse -Filter output.json -ErrorAction SilentlyContinue | ForEach-Object {
+            "--- $($_.FullName) ---" | Add-Content diagnostics\r4-build.txt -Encoding utf8
+            Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue | Add-Content diagnostics\r4-build.txt -Encoding utf8
+          }
+
+          "=== Tail of build log ===" | Add-Content diagnostics\r4-build.txt -Encoding utf8
+          Get-Content upstream-build.log -Tail 350 -ErrorAction SilentlyContinue | Add-Content diagnostics\r4-build.txt -Encoding utf8
+      - name: Commit diagnostics
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostics/r4-build.txt
+          git commit -m "chore: capture r4 build diagnostics [skip ci]"
+          git push origin HEAD:fix/runtime-localization-r4
