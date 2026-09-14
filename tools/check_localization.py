@@ -88,6 +88,9 @@ def main() -> int:
         inventory.get("unhandled_csharp", []),
         stale_reviewed_entries(memory),
     )
+    result["fallback_sources"] = {
+        key: en.get(key, "") for key in result["fallback_keys"]
+    }
     baseline_manifest = set(inventory.get("manifest_visible_text", []))
     result["new_manifest_visible_text"] = [x for x in manifest_visible if x not in baseline_manifest]
     out_path = args.repo / "reports" / "check-report.json"
