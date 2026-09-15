@@ -21,6 +21,11 @@ def load_translation_memory(localization_dir: Path) -> dict:
             if current and current.get("state") == "reviewed" and incoming.get("state") == "reviewed":
                 if current.get("translation") != incoming.get("translation"):
                     raise RuntimeError(f"Conflicting reviewed translation for: {source}")
+                expected_hash = source_hash(source)
+                current_hash_valid = current.get("source_hash") == expected_hash
+                incoming_hash_valid = incoming.get("source_hash") == expected_hash
+                if incoming_hash_valid and not current_hash_valid:
+                    merged[source] = incoming
                 continue
             if current and current.get("state") == "reviewed" and incoming.get("state") != "reviewed":
                 continue
