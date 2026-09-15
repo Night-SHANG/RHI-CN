@@ -1,7 +1,0 @@
-{
-  "release": "RHI-CN-2.7.0-r5",
-  "upstream": "RHI-2.7.0",
-  "reason": "Publish merged R4 settings stability, Tooltip localization, and zero-fallback fixes",
-  "requested_at": "2026-09-15T00:20:00Z",
-  "attempt": 1
-}
