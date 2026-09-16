@@ -1,6 +1,6 @@
 {
   "upstream": "RankFTW/RHI",
-  "validated_main_commit": "c976c3dec684046f3701afa70fbfb3ee16e53969",
-  "observed_release_tag": "RHI-2.7.1",
+  "validated_main_commit": "eba1cc19c69daed240f1949eeba530df2da0965f",
+  "observed_release_tag": "RHI-2.7.2",
   "published_release_tag": "RHI-2.7.1"
 }
