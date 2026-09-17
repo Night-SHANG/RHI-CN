@@ -1,5 +1,5 @@
 {
-  "upstream_commit": "eba1cc19c69daed240f1949eeba530df2da0965f",
+  "upstream_commit": "661b7666ba6fcc4454746b22052e42d07a112dda",
   "unhandled_csharp": [],
   "manifest_visible_text": [
     "⚠ ReShade in GTA V Enhanced may produce an \"Unable to save configuration\" error due to an incompatibility with DirectStorage.\n\nFix: install ASI Loader first, then drop DirectStorageFix.asi into the game folder.\n\nDownload DirectStorageFix: https://www.gta5-mods.com/scripts/directstoragefix\n\nAlternatively, use ReShade 5.9.2 or older.",
