@@ -1,0 +1,7 @@
+{
+  "release": "RHI-CN-2.7.5-r1",
+  "upstream": "RHI-2.7.5",
+  "reason": "Rebuild exact RHI 2.7.5 with reviewed translations for 100% Simplified Chinese coverage and zero English fallback",
+  "requested_at": "2026-09-24T05:45:00Z",
+  "attempt": 1
+}
