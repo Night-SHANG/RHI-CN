@@ -2,96 +2,96 @@
   "Addon version to install. Changing while installed swaps the file in-place without a full reinstall.": {
     "translation": "要安装的附加组件版本。已安装时更改版本会直接替换文件，无需完整重装。",
     "state": "reviewed",
-    "source_hash": "fdd607494200f7fcbccc7507ae95f7ce227d95f34bcce2d2d43f5e00846cf3fd"
+    "source_hash": "eea68f2f7d348be67503d1d2e91268fbacb5ba1df2711791e4d94c906a81b5de"
   },
   "Available HDR Mods": {
     "translation": "可用 HDR 模组",
     "state": "reviewed",
-    "source_hash": "5147b520cf38a1360db6886602c378adf068c10fae03775b5d391311c208432d"
+    "source_hash": "552fbcf3ce231573def74f31dd8db3d7eb9c89450d951c5e5e3ecfad23bd862a"
   },
   "Browse all games with available HDR mods": {
     "translation": "浏览所有提供 HDR 模组的游戏",
     "state": "reviewed",
-    "source_hash": "61c17028a5801101b373ce737490a784676795cc547eb465a685d8aab97f29ec"
+    "source_hash": "199d6ed229ab7c2d6af1c8122f10b2f0a9300fb36cf12f472e14fcc923a74943"
   },
   "Click to open OptiScaler releases": {
     "translation": "点击打开 OptiScaler 发布页面",
     "state": "reviewed",
-    "source_hash": "4992842fc707d47149e2e0463674afcd827ee14bf419f5c393821e3b4d33f7f9"
+    "source_hash": "6eb66d8940d06a04533b43abc94326683298112128751352612267179491036c"
   },
   "Link": {
     "translation": "链接",
     "state": "reviewed",
-    "source_hash": "5cf5863c4626b1d24f67427c69a7b0ea8fafd25da418426155b5970af0de8a48"
+    "source_hash": "a6a32dbc5618ea39f6df5b0f9808e3588b19e00d5f6f96c69492e40386e5aeab"
   },
   "Override the ReShade DLL filename. Select a name to rename the installed DLL immediately. Select -------- to revert to the default name.": {
     "translation": "覆盖 ReShade DLL 文件名。选择一个名称会立即重命名已安装的 DLL；选择 -------- 可恢复默认名称。",
     "state": "reviewed",
-    "source_hash": "985e02aabe38a1736a6ca875f025a6d59132c8893f0a89206a43cbd470dfe33e"
+    "source_hash": "56f271c43875e58e67f8783dee536547489ff73fe59979dc7164db7837e77d95"
   },
   "Reset DLL Names": {
     "translation": "重置 DLL 名称",
     "state": "reviewed",
-    "source_hash": "6cdb62b5f9ba60b83e376ce39ab9f115c0e90c582530a8c9db28cce1a6a1c738"
+    "source_hash": "fed32d9522d5e8aa902ce65c86fc1deb958361e87a2673f449c483c4a23c9546"
   },
   "Revert all DLL names back to defaults and clear saved overrides.": {
     "translation": "将所有 DLL 名称恢复为默认值，并清除已保存的覆盖项。",
     "state": "reviewed",
-    "source_hash": "352e42b727eff55aa8ca3c26d48baa1b6fee64994cefc73ba5c27194a6e50250"
+    "source_hash": "830fd516c55dffc68312cf2f9ceb232994c89c21308f7ecee71b3f1409f08a1d"
   },
   "Search games…": {
     "translation": "搜索游戏…",
     "state": "reviewed",
-    "source_hash": "a952d4277ffb8dad2c324b7dfe6a7e7b8e93d4e9d976c8a4cb914c24cd74a05a"
+    "source_hash": "0a8600278b20d967b9b4c667b82a411f2d39f819fb02490122eb8d9c07b63a8d"
   },
   "ShortFuse DLSS Addon Settings": {
     "translation": "ShortFuse DLSS 附加组件设置",
     "state": "reviewed",
-    "source_hash": "b2b15d3bcbbc560e3eb2f8f29fce8b09f26c7d2b760161b6373be74164cde520"
+    "source_hash": "b387bcba4885f03b1b5751d2d6288309d7caf1d1c283ee672af7baab3a05f330"
   },
   "ShortFuse DLSS addon settings — auto-configure ReShade for FrameGen": {
     "translation": "ShortFuse DLSS 附加组件设置——自动为帧生成配置 ReShade",
     "state": "reviewed",
-    "source_hash": "05a9f7ee7539964dfb995b2ba6128c13b9211296f94a96ae58a39dd96d29e999"
+    "source_hash": "17b2030c481f59166f9b2c9c79899b6198bed20b1cf6f9acb086a5fe1c613aee"
   },
   "Swapping addon...": {
     "translation": "正在切换附加组件...",
     "state": "reviewed",
-    "source_hash": "f2d3f1caaa934b38def86e6ac540113f678b11f2a1e9985b578e816546784a33"
+    "source_hash": "3e8ab9e5309ea243159c27607019b0f7b605fbaeae4a45d17cf943d524012584"
   },
   "Version of renodx-dlss5.addon64 deployed as the neural consumer. Changing while installed swaps the file in-place.": {
     "translation": "作为神经渲染消费者部署的 renodx-dlss5.addon64 版本。已安装时更改版本会直接替换文件。",
     "state": "reviewed",
-    "source_hash": "2ae6d5556c7a9cbd40c852da0ef2ca361d014925253244e5ed51bb3046de93ce"
+    "source_hash": "fdeb74b0fc5ddb56ada357ac0ed631221371cd953e9a7a6d087b0224c71529bb"
   },
   "When On, RHI will automatically configure ReShade when installing the ShortFuse DLSS addon:\n• Rename ReShade to Reshade64.asi\n• Install ASI Loader (winmm → version → dinput8)\n• Write HookStreamline=1 and HookDirectX=1 to reshade.ini\n\nThese steps are needed for FrameGen to work correctly after ReShade.\n\nNote: no longer required on ShortFuse DLSS addon v0.54 and above.": {
     "translation": "开启后，安装 ShortFuse DLSS 附加组件时，RHI 会自动配置 ReShade：\n• 将 ReShade 重命名为 Reshade64.asi\n• 安装 ASI Loader（winmm → version → dinput8）\n• 向 reshade.ini 写入 HookStreamline=1 和 HookDirectX=1\n\n这些步骤用于确保 ReShade 之后的帧生成能够正常工作。\n\n注意：ShortFuse DLSS 附加组件 v0.54 及以上版本已不再需要这些步骤。",
     "state": "reviewed",
-    "source_hash": "f4a9c7c22c15aaaafc43727e84edc6bec48bc2e9cb010c574946184d19bec7e4"
+    "source_hash": "c49621ad001a3835ae91faddbb0e7bb143d2603f2190a8002d824b8bd04a8bc2"
   },
   "{0} games with HDR mods": {
     "translation": "{0} 个游戏有 HDR 模组",
     "state": "reviewed",
-    "source_hash": "93388453f20674e7d8e09b53763a64d11cd319bc13782574c5f2a523855bc4d4"
+    "source_hash": "dc2ed50c4c1b87145512e7352662c4c2e93a0e67752c9b668abb4304fb85d20d"
   },
   "{0} ReShade": {
     "translation": "{0} ReShade",
     "state": "reviewed",
-    "source_hash": "553620767e3300689f4449248879e7213e40e2ec7bd12edcf415fcfbe4417a8c"
+    "source_hash": "a4801fbdd5e6666c3354cf7e6772fdfe478c7f0ac2fb8cd3fd02bb23af33c80a"
   },
   "———  HDR Mods  ———": {
     "translation": "———  HDR 模组  ———",
     "state": "reviewed",
-    "source_hash": "06132e4ec471645f3d6a51277159f84a07ca899a5760946948637a156166b919"
+    "source_hash": "713e594bebe331788077594165ec27b3d34e93a2e70aefa1c7d9966dfaf1e946"
   },
   "⚠ dgVoodoo2 blocked by Defender": {
     "translation": "⚠ dgVoodoo2 被 Defender 阻止",
     "state": "reviewed",
-    "source_hash": "4726f48d67dba0fe99309d27a8d2590a789b95e22bf3a89dbfcd49d6f075495f"
+    "source_hash": "8b5cca0b7b89840f5286f460d4d900f53cfd627997b3a1b1412a4d26f85acbb2"
   },
   "⚠ This is an unreleased / work-in-progress Luma mod.\n\nProceed at your own risk. Please do not report issues to HDR Den or RHI unless you have been specifically asked to test this mod.": {
     "translation": "⚠ 这是尚未发布 / 仍在开发中的 Luma 模组。\n\n请自行承担风险。除非明确要求你测试该模组，否则请不要向 HDR Den 或 RHI 报告问题。",
     "state": "reviewed",
-    "source_hash": "1315c340a912c59d097c56586fa81ef60707fb1497c3d945c797e92c96f7802b"
+    "source_hash": "b754570f6f5a8dda8aa8aa2337187ca682a80e309a611b5ad58a53e24b5abb0c"
   }
 }
