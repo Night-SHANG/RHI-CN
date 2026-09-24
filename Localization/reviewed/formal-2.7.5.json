@@ -1,0 +1,157 @@
+{
+  "Bridge Version": {
+    "translation": "Bridge 版本",
+    "state": "reviewed",
+    "source_hash": "5e9ac128fb6eea29d319a462a8755c2dfbfff66daf5cbc408c4ebbf38fb7fcd8"
+  },
+  "Check for app updates": {
+    "translation": "检查应用更新",
+    "state": "reviewed",
+    "source_hash": "1da2577bd493c20f3988d3730fb14b3a4d3a88377b1401314dee4f322d6cb3bd"
+  },
+  "Click to open DXVK releases": {
+    "translation": "点击打开 DXVK 发布页面",
+    "state": "reviewed",
+    "source_hash": "f98095934bbcf15739f4e6e002906ecb352923bca0718d9595dbf2c0c1b57c7d"
+  },
+  "Controls where RHI fetches mod data. RHI Database uses the community-maintained RHI database (recommended). RenoDX Wiki falls back to the RenoDX wiki scraper. Changing this setting triggers an immediate refresh.": {
+    "translation": "控制 RHI 从何处获取模组数据。“RHI 数据库”使用社区维护的 RHI 数据库（推荐）；“RenoDX Wiki”则使用 RenoDX Wiki 抓取器。更改此设置会立即触发刷新。",
+    "state": "reviewed",
+    "source_hash": "213b4d617ef1c71188ea104150050d05f64967712a9fd5eb75f2b40531d70661"
+  },
+  "Custom Shaders": {
+    "translation": "自定义着色器",
+    "state": "reviewed",
+    "source_hash": "9cf3905f9be402e0decfe0233a086db4c8eb89120e4d4af8fb12eaa4987f6aff"
+  },
+  "Development": {
+    "translation": "开发版",
+    "state": "reviewed",
+    "source_hash": "72796e7019d78f083f6d00d38c0ef0b220b19698f22e079767000d935aeab552"
+  },
+  "Development: latest nightly build. Stable: last stable release. Lilium HDR: HDR-optimised variant (default).": {
+    "translation": "开发版：最新夜间构建。稳定版：最新稳定发布。Lilium HDR：针对 HDR 优化的变体（默认）。",
+    "state": "reviewed",
+    "source_hash": "17382c26446f35baeb932757a918ca50febe46e7491cfa721b83b362a79bcbec"
+  },
+  "DLSS5 Tool Version": {
+    "translation": "DLSS5 工具版本",
+    "state": "reviewed",
+    "source_hash": "d7bad0356e2dd04b8c7fe2471cfa49441e8bfdbbb2ddd52dad1dc02c66e8cc9c"
+  },
+  "Downloading Feed.fx...": {
+    "translation": "正在下载 Feed.fx...",
+    "state": "reviewed",
+    "source_hash": "9274211a2d4b2581f1a2ba2f0220c2f68cd3bcd29fe8af24ef0abe3b09e33088"
+  },
+  "Feeder Version": {
+    "translation": "Feeder 版本",
+    "state": "reviewed",
+    "source_hash": "830e6276e2e022d5559ac298adeca79883f62041b0cc79caa7321b74954a50b2"
+  },
+  "Fixing ReShade filename...": {
+    "translation": "正在修正 ReShade 文件名...",
+    "state": "reviewed",
+    "source_hash": "54ab393bb6fc145963af9d35bbb115f60f307e79c0d0a6677426e9b828bafcb3"
+  },
+  "For DX11 and Vulkan games with native DLSS. The bridge mirrors the game's DLSS onto a private DX12 session so the NR addon can hook it.": {
+    "translation": "用于原生支持 DLSS 的 DX11 和 Vulkan 游戏。Bridge 会将游戏的 DLSS 镜像到独立的 DX12 会话，以便 NR 附加组件能够挂接。",
+    "state": "reviewed",
+    "source_hash": "dc078bc978bca63f5de1253aa1fac3a98ff5fd5a4aa92d2d7344eea20551af91"
+  },
+  "HDR mod complete": {
+    "translation": "HDR 模组处理完成",
+    "state": "reviewed",
+    "source_hash": "20e65af63528913389911382facb70208e65541993534df05c5ea9d8115475ca"
+  },
+  "HDR mod in progress": {
+    "translation": "正在处理 HDR 模组",
+    "state": "reviewed",
+    "source_hash": "cee92e8043e3c476901937142b6e576de65d3473b34f40541acca16fd96a04f1"
+  },
+  "Install {0} to:": {
+    "translation": "将 {0} 安装到：",
+    "state": "reviewed",
+    "source_hash": "51545655af3c91f06a559460feb6b416ab2a3c2ce79afbc4d3d3012567cc0ff1"
+  },
+  "Lilium HDR": {
+    "translation": "Lilium HDR",
+    "state": "reviewed",
+    "source_hash": "ecb17637bcc869a3a4f14ad822633a62e95d2844359040ce203f864eedf6d8cb"
+  },
+  "Lilium Preset": {
+    "translation": "Lilium 预设",
+    "state": "reviewed",
+    "source_hash": "e87d2e0541f0ebc84b412fd5ece204823a654e38fe3c3fe0fc621df7604618e0"
+  },
+  "Open Custom Folder": {
+    "translation": "打开自定义文件夹",
+    "state": "reviewed",
+    "source_hash": "ed2823b1ca7ac7f16870cdc0f0fc3a5df87f3db6fcc0673ce69e9d6f5fdbecbc"
+  },
+  "Open your Custom shader folder — place .fx files in Shaders\\ and textures in Textures\\ to add them to the picker above.": {
+    "translation": "打开自定义着色器文件夹——将 .fx 文件放入 Shaders\\，将纹理放入 Textures\\，即可添加到上方选择器中。",
+    "state": "reviewed",
+    "source_hash": "450549b2d584c4b8e1c3333d34e4ee1a9856c73a4822db66bc0dbbe32f11333e"
+  },
+  "Recommended for most games with native DLSS. Deploys the full DLSS SR/RR/FG/NR stack and Streamline alongside the ReShade addon. Supports DX12, DX11, DX9, and Vulkan.": {
+    "translation": "推荐用于大多数原生支持 DLSS 的游戏。会随 ReShade 附加组件一起部署完整的 DLSS SR/RR/FG/NR 和 Streamline。支持 DX12、DX11、DX9 和 Vulkan。",
+    "state": "reviewed",
+    "source_hash": "e0b4fcce9cec687db4c6a5d8e9b27bd237d0254833b24b37289ffb0309e1705e"
+  },
+  "Reset all per-game overrides back to defaults (DLL names, channels, shaders, addons, launch settings, update inclusion).": {
+    "translation": "将所有逐游戏覆盖项重置为默认值（DLL 名称、通道、着色器、附加组件、启动设置、更新包含项）。",
+    "state": "reviewed",
+    "source_hash": "e4b51fb369d61fc71b0bd38a4a4d20c93cd4e0909164d2e4bf959e3290833b37"
+  },
+  "RHI Database": {
+    "translation": "RHI 数据库",
+    "state": "reviewed",
+    "source_hash": "c882807cdeefbf11ac35d49f2eb59dc4fbc267f53ed51b16532a8332a48f104a"
+  },
+  "RHI is up to date": {
+    "translation": "RHI 已是最新版本",
+    "state": "reviewed",
+    "source_hash": "297f8dd38c8f86927ce7964a602f35eca1a9135aa7b49a21c254f725bb46267e"
+  },
+  "Safest = swap chain only (near 100% compatible).\nHigher tiers upgrade back buffers and render targets — better HDR but may cause visual issues.": {
+    "translation": "最安全 = 仅交换链（接近 100% 兼容）。\n更高等级会升级后缓冲区和渲染目标——HDR 效果更好，但可能导致画面问题。",
+    "state": "reviewed",
+    "source_hash": "0be15f560e98ccc91f8b670bf7a1c39371fa8d453d070552d90d2fd9c6d4bcfe"
+  },
+  "SF Version": {
+    "translation": "SF 版本",
+    "state": "reviewed",
+    "source_hash": "7e1f9bdd2202769c15108fd1286e917108276346d9f2f213381db83a9387740d"
+  },
+  "Variant": {
+    "translation": "变体",
+    "state": "reviewed",
+    "source_hash": "78a9002833518178f53a8d264f312b86f9b9593c21f057996909da3f01e316b4"
+  },
+  "Version of dlss5-bridge.addon64 to install.": {
+    "translation": "要安装的 dlss5-bridge.addon64 版本。",
+    "state": "reviewed",
+    "source_hash": "9472c7ff8361fc7dd5e07a5d30050e1969ee089db98d4d77e7ed3ba7434cd309"
+  },
+  "Version of dlss5-feed.addon64 to install.": {
+    "translation": "要安装的 dlss5-feed.addon64 版本。",
+    "state": "reviewed",
+    "source_hash": "a173b78001518e0c9181eecb70a61364860723062934724dc861d1054966831a"
+  },
+  "Version of renodx-dlss5.addon64 deployed as the neural consumer. The Feeder addon itself always uses the latest version.": {
+    "translation": "作为神经渲染消费者部署的 renodx-dlss5.addon64 版本。Feeder 附加组件本身始终使用最新版本。",
+    "state": "reviewed",
+    "source_hash": "bd24674a0b13497a8e123eb6b2ecc4f1553ca5ca0708ab6ddcf09b0e323f4e83"
+  },
+  "You're running v{0} — no updates available.": {
+    "translation": "当前版本为 v{0}——没有可用更新。",
+    "state": "reviewed",
+    "source_hash": "815b9d85273024023f7636abf74973eca17e0c8fa7fe956145c128bf2c0be954"
+  },
+  "🌙 Install Luma Addon": {
+    "translation": "🌙 安装 Luma 附加组件",
+    "state": "reviewed",
+    "source_hash": "031683dec3c76ce39e30e580a4b8190376570bd0f79d1a07f922b6d6a2442a6c"
+  }
+}
