@@ -1,5 +1,13 @@
 {
   "upstream_commit": "907af7cdb7cc0600c97fc9be005782eb95c849f5",
-  "unhandled_csharp": [],
+  "unhandled_csharp": [
+    {
+      "file": "MainWindow.Events.cs",
+      "text": "capturedUrl",
+      "format": "capturedUrl",
+      "kind": "tooltip",
+      "review_note": "Upstream donation button tooltip displays the same captured URL passed to LaunchUriAsync; retain the URL verbatim."
+    }
+  ],
   "manifest_visible_text": []
 }

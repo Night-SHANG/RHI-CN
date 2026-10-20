@@ -42,7 +42,10 @@ jobs:
         run: python tools/check_localization.py --source upstream --repo .
       - name: Run upstream tests
         shell: pwsh
-        run: dotnet test upstream\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
+        run: |
+          python tools/sdk_dependencies.py --source upstream --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test upstream\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
       - name: Resolve package version
         shell: pwsh
         run: |

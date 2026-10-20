@@ -10,6 +10,7 @@ import sys
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.sdk_dependencies import align_sdk, TEST as TEST_PROJECT
 from tools.console import print_json
 from tools.resw import read_resw, write_resw, materialize_zh
 from tools.transform import transform_xaml, transform_csharp, scan_csharp_unhandled
@@ -213,7 +214,19 @@ def _patch_manifest_display(project: Path) -> None:
         replacement = "Content = RenoDXCommander.Services.LocalizationService.GetDataString(message),"
         if replacement not in text:
             if anchor not in text:
-                if "CheckInstallWarningAsync" in text:
+                # Newer upstream renders a trailing URL as a HyperlinkButton.
+                # Translate the full manifest string before upstream separates it.
+                guard = "if (string.IsNullOrEmpty(message)) return true;"
+                translate = "message = RenoDXCommander.Services.LocalizationService.GetDataString(message);"
+                if translate in text:
+                    pass
+                elif (text.count(guard) == 1
+                      and "Content = dialogContent," in text
+                      and "dialogContent = message;" in text
+                      and "Regex.Match(message," in text):
+                    text = text.replace(guard, guard + "\n        " + translate, 1)
+                    warning_file.write_text(text, encoding="utf-8")
+                elif "CheckInstallWarningAsync" in text:
                     raise RuntimeError("Install warning display contract changed")
             else:
                 text = text.replace(anchor, replacement, 1)
@@ -249,6 +262,10 @@ def materialize(source_root: Path, repo_root: Path, release_version: str | None 
     if missing:
         raise RuntimeError(f"Required upstream files missing: {missing}")
 
+    # Older/minimal source trees may not ship tests. A present test project must
+    # use the application SDK while retaining its explicit build-asset exclusions.
+    if (source_root / TEST_PROJECT).exists():
+        align_sdk(source_root)
     _patch_csproj(project / "RenoDXCommander.csproj", release_version=release_version)
     _patch_app(project / "App.xaml.cs")
     _patch_app_resources(project / "App.xaml")
