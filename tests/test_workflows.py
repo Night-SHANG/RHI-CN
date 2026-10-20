@@ -29,3 +29,15 @@ def test_upstream_sync_is_daily_strict_never_clobbers_and_stamps_formal_version(
     assert '--strict' in text and '--update-baseline' in text
     assert 'gh release view' in text and '--clobber' not in text and 'published_release_tag' in text
     assert text.count('--source upstream-release --repo . --release-version "$env:RHI_VERSION"') >= 2
+
+
+def test_all_current_build_paths_check_sdk_before_dotnet_test():
+    for name in ('validate.yml', 'build.yml', 'upstream-sync.yml'):
+        data, _ = load(name)
+        for job in data['jobs'].values():
+            for step in job['steps']:
+                run = step.get('run', '')
+                if 'dotnet test ' in run:
+                    assert 'tools/sdk_dependencies.py' in run and '--check' in run
+                    assert run.index('sdk_dependencies.py') < run.index('dotnet test ')
+                    assert 'if ($LASTEXITCODE -ne 0)' in run

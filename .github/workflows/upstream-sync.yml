@@ -74,7 +74,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compile current upstream main
         shell: pwsh
-        run: dotnet test upstream-main\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
+        run: |
+          python tools/sdk_dependencies.py --source upstream-main --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test upstream-main\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
       - name: Record validated main and observed release
         shell: pwsh
         run: |
@@ -114,7 +117,10 @@ jobs:
       - name: Test formal release
         if: steps.release-check.outputs.needed == 'true'
         shell: pwsh
-        run: dotnet test upstream-release\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
+        run: |
+          python tools/sdk_dependencies.py --source upstream-release --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test upstream-release\RenoDXCommander.Tests\RenoDXCommander.Tests.csproj -c Release -p:Platform=x64
       - name: Commit any formal-release translation additions before tagging
         if: steps.release-check.outputs.needed == 'true'
         shell: pwsh
