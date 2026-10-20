@@ -24,3 +24,6 @@ Upstream source and copyright notices remain governed by the GNU GPL v3 and the 
 - Support upstream's hyperlink-aware install warnings by translating the full
   manifest message before its existing URL split; older direct-content warning
   layouts remain supported, and unknown layouts still fail closed.
+- Declare the upstream loose ClrMD DLL as an exact-version `PackageDownload`,
+  derived from its existing cache path. This populates clean runner caches without
+  introducing the `PackageReference` that upstream avoids for WinUI publishing.

@@ -6,6 +6,7 @@ import re
 import shutil
 from pathlib import Path
 import sys
+import xml.etree.ElementTree as ET
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -62,8 +63,41 @@ def _set_project_version(text: str, release_version: str) -> str:
     return text
 
 
+def _patch_loose_build_dependencies(text: str) -> str:
+    """Restore ClrMD's loose DLL without adding a WinUI compile-time reference."""
+    root = ET.fromstring(text)
+    copies = [item for item in root.findall('.//None')
+              if 'Microsoft.Diagnostics.Runtime.dll' in item.get('Include', '')]
+    if not copies:
+        return text
+    if len(copies) != 1:
+        raise RuntimeError('Expected one loose ClrMD DLL copy')
+    path = copies[0].get('Include', '')
+    match = re.fullmatch(
+        r'\$\(UserProfile\)\\\.nuget\\packages\\microsoft\.diagnostics\.runtime\\'
+        r'(\d+(?:\.\d+){2,3})\\lib\\net6\.0\\Microsoft\.Diagnostics\.Runtime\.dll', path)
+    parents = {child: parent for parent in root.iter() for child in parent}
+    node = copies[0]
+    while node is not None:
+        if 'Condition' in node.attrib:
+            raise RuntimeError('Conditional ClrMD copy needs manual review')
+        node = parents.get(node)
+    if not match:
+        raise RuntimeError('Loose ClrMD cache path contract changed')
+    version = f'[{match[1]}]'
+    downloads = root.findall(".//PackageDownload[@Include='Microsoft.Diagnostics.Runtime']")
+    if downloads:
+        if len(downloads) != 1 or downloads[0].get('Version') != version:
+            raise RuntimeError('Conflicting ClrMD PackageDownload')
+        return text
+    insertion = f'  <ItemGroup>\n    <PackageDownload Include="Microsoft.Diagnostics.Runtime" Version="{version}" />\n  </ItemGroup>\n'
+    if text.count('</Project>') != 1:
+        raise RuntimeError('Project closing element contract changed')
+    return text.replace('</Project>', insertion + '</Project>', 1)
+
+
 def _patch_csproj(path: Path, release_version: str | None = None) -> None:
-    text = path.read_text(encoding="utf-8")
+    text = _patch_loose_build_dependencies(path.read_text(encoding="utf-8"))
     if release_version:
         text = _set_project_version(text, release_version)
     if "WinUI3Localizer" not in text:
