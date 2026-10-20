@@ -41,3 +41,8 @@ def test_all_current_build_paths_check_sdk_before_dotnet_test():
                     assert 'tools/sdk_dependencies.py' in run and '--check' in run
                     assert run.index('sdk_dependencies.py') < run.index('dotnet test ')
                     assert 'if ($LASTEXITCODE -ne 0)' in run
+
+
+def test_packaging_is_validated_before_merging_pull_requests():
+    data, _ = load('build.yml')
+    assert 'pull_request' in (data.get('on') or data.get(True))

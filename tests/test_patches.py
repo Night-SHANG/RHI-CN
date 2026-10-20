@@ -19,3 +19,27 @@ def test_installer_real_contract_and_conflict_guard():
     assert 'ui-language.txt' in out and 'DeleteFile(SignalPath)' in out
     with pytest.raises(RuntimeError):
         patch_installer_text('[Languages]\nName: "chinesesimplified"; MessagesFile: "other.isl"\n','p','o','expected.isl')
+
+
+def test_installer_supports_current_upstream_derived_version():
+    src = r'''#ifndef MyAppVersion
+  #define MyAppVersion GetVersionNumbersString(PublishDir + "\RHI.exe")
+#endif
+[Setup]
+OutputDir={#InstallerOutputDir}
+OutputBaseFilename=RHI-Setup
+SetupIconFile={#PublishDir}\icon.ico
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+[Files]
+Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+[Code]
+'''
+    out = patch_installer_text(src, r'D:\publish', r'D:\installer', 'ChineseSimplified.isl', version='2.8.7')
+    assert '  #define MyAppVersion "2.8.7"' in out
+    assert 'GetVersionNumbersString' not in out
+    assert 'Source: "D:\\publish\\*"' in out
+    assert 'RHI-CN-2.8.7-Setup' in out
+    assert patch_installer_text(out, r'D:\publish', r'D:\installer', 'ChineseSimplified.isl', version='2.8.7') == out
+    with pytest.raises(RuntimeError):
+        patch_installer_text(src.replace('GetVersionNumbersString(PublishDir + "\\RHI.exe")', 'UnknownVersionExpression()'), 'p', 'o', 'ChineseSimplified.isl', version='2.8.7')
