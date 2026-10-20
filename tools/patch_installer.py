@@ -31,14 +31,18 @@ def patch_installer_text(
         text = text[:setup.end()] + "\nShowLanguageDialog=yes" + text[setup.end():]
 
     if version:
-        if not re.search(r'(?im)^#define\s+MyAppVersion\s+"[^"]+"', text):
-            raise RuntimeError("Installer MyAppVersion define missing")
-        text = re.sub(
-            r'(?im)^#define\s+MyAppVersion\s+"[^"]+"',
-            lambda _m: f'#define MyAppVersion "{version}"',
-            text,
-            count=1,
-        )
+        if not re.fullmatch(r"\d+(?:\.\d+){1,3}", version):
+            raise ValueError("Invalid installer version")
+        defines = list(re.finditer(r'(?im)^([ \t]*)#define[ \t]+MyAppVersion[ \t]+([^\r\n]+)', text))
+        if len(defines) != 1:
+            raise RuntimeError("Expected exactly one installer MyAppVersion define")
+        define = defines[0]
+        expression = define[2].strip()
+        known_derived = r'GetVersionNumbersString(PublishDir + "\RHI.exe")'
+        if not re.fullmatch(r'"[^"\r\n]+"', expression) and expression != known_derived:
+            raise RuntimeError("Installer MyAppVersion expression contract changed")
+        replacement = f'{define[1]}#define MyAppVersion "{version}"'
+        text = text[:define.start()] + replacement + text[define.end():]
 
     if re.search(r'(?im)^OutputDir=', text):
         text = re.sub(r'(?im)^OutputDir=.*$', lambda _m: f'OutputDir={output_dir}', text, count=1)
