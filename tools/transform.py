@@ -365,7 +365,8 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
         if relpath == "SettingsHandler.UpdateCountdown.cs" and re.search(r'\breturn\s*$', text[:start]):
             context = ('property', 'CountdownDisplay')
         if relpath == "MainWindow.Events.Components.Rdx.cs" and body.startswith((
-            '{specific} Saved as ', 'Saved as {kv.Key}', 'Saved as {setting.Key}')):
+            '{specific} Saved as ', 'Saved as {kv.Key}', 'Saved as {setting.Key}',
+            'Upgrades {labelText} textures to an HDR format.')):
             context = ('property', 'CompatibilityHelp')
         # The settings search counter is built in a switch, then rendered as Text.
         # Restrict this exception to its known UI file and exact sentence shapes.
@@ -384,10 +385,16 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
         key = _cs_key(relpath, fmt, f'interpolated:{kind}:{name}')
         entries[key] = fmt
         fallback = _encode_csharp_string(fmt)
+        # Preserve actual user input and INI identifiers in the new settings UI.
+        raw_args = {
+            "SettingsHandler.Navigation.cs": {"q"} if name == "countText" else set(),
+            "MainWindow.Events.SettingsInputs.cs": {"typed"},
+            "MainWindow.Events.Components.Rdx.cs": {"kv.Key", "setting.Key"},
+        }.get(relpath, set())
         rendered_args = ', '.join(
-            # Search queries are user input, even when they match a dictionary key.
+            # Data can coincide with an English label without being a label.
             (f'$"{{{expr}}}"'
-             if relpath == "SettingsHandler.Navigation.cs" and name == "countText" and expr == "q"
+             if expr in raw_args
              else f'RenoDXCommander.Services.LocalizationService.GetDataString($"{{{expr}}}")')
             for expr in args
         )

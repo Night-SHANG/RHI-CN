@@ -196,3 +196,24 @@ def test_faq_vulkan_path_preserves_single_windows_separators():
     translated = memory[source]['translation']
     assert r'C:\ProgramData\ReShade' in translated
     assert translated.count('\\') == source.count('\\') == 2
+
+
+def test_new_cog_help_keeps_ini_key_verbatim():
+    for expr in ('kv.Key', 'setting.Key'):
+        out, _ = transform_csharp(f'var help = $"Saved as {{{expr}}} in reshade.ini.";', 'MainWindow.Events.Components.Rdx.cs')
+        assert f'GetDataString($"{{{expr}}}")' not in out
+        assert f'$"{{{expr}}}"' in out
+
+
+def test_addon_folder_error_keeps_user_path_verbatim():
+    src = 'Content = $"\\"{typed}\\" doesn\'t exist. The addon watch folder was not changed.";'
+    out, _ = transform_csharp(src, 'MainWindow.Events.SettingsInputs.cs')
+    assert 'LocalizationService.Format' in out
+    assert 'GetDataString($"{typed}")' not in out
+
+
+def test_resource_upgrade_specific_help_is_localized():
+    src = 'string? specific = isResourceUpgrade ? $"Upgrades {labelText} textures to an HDR format. Output size and Output ratio only upgrade textures matching the screen size or aspect ratio; Any size upgrades all of them." : null;'
+    out, entries = transform_csharp(src, 'MainWindow.Events.Components.Rdx.cs')
+    assert 'LocalizationService.Format' in out
+    assert any(value.startswith('Upgrades {0} textures') for value in entries.values())
