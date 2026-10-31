@@ -1,0 +1,446 @@
+name: Correct fixed release metadata once
+"on":
+  push:
+    branches: ["release-metadata/20261101-9dcf8d25"]
+    paths: [".github/workflows/correct-release-metadata-20261101.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: correct-release-20261101-430073881
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Fixed release verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          """One-shot candidate retention. Stdlib only; no artifact code execution.
+          CI entry is generated inline with an immutable per-repository manifest.
+          """
+          import hashlib,io,json,os,posixpath,re,stat,sys,urllib.request,urllib.error,urllib.parse,zipfile
+          class Stop(RuntimeError):pass
+          def require(ok,message):
+           if not ok:raise Stop(message)
+          def sha(data):return hashlib.sha256(data).hexdigest()
+          def extract_assets(blob,m):
+           require(len(blob)==m['artifact']['size_in_bytes'],'archive size mismatch')
+           require('sha256:'+sha(blob)==m['artifact']['digest'],'archive hash mismatch')
+           with zipfile.ZipFile(io.BytesIO(blob)) as z:
+            infos=z.infolist();require(len(infos)<=4096,'too many members');seen=set();total=0
+            for i in infos:
+             n=i.filename
+             require(n and not n.startswith('/') and '\\' not in n and ':' not in n and not any(p in ('..','.','') for p in n.rstrip('/').split('/')),'unsafe zip path')
+             require(n not in seen,'duplicate member');seen.add(n)
+             mode=i.external_attr>>16
+             require(stat.S_IFMT(mode) in (0,stat.S_IFREG,stat.S_IFDIR),'nonregular zip entry')
+             require(not i.flag_bits&1,'encrypted entry')
+             total+=i.file_size
+             require(total<=1024*1024*1024 and i.file_size<=512*1024*1024,'archive expansion limit')
+             require(i.file_size<=max(1,i.compress_size)*1000,'compression ratio limit')
+            result={}
+            for a in m['assets']:
+             require(re.fullmatch(r'[A-Za-z0-9_.-]+',a['name']) and a['name'] not in result,'unsafe asset name')
+             require(a['member'] in seen,'missing asset')
+             data=z.read(a['member']);require(len(data)==a['size'] and sha(data)==a['sha256'],'asset mismatch')
+             result[a['name']]=data
+            return result
+          
+          def guard(m,e,event):
+           expected={'GITHUB_ACTIONS':'true','GITHUB_EVENT_NAME':'push','GITHUB_REPOSITORY':m['repository'],'GITHUB_REF':'refs/heads/'+m['publish_branch'],'GITHUB_RUN_ATTEMPT':'1','GITHUB_WORKFLOW_REF':m['repository']+'/'+m['workflow_path']+'@refs/heads/'+m['publish_branch']}
+           for k,v in expected.items():require(e.get(k)==v,'context mismatch: '+k)
+           require(re.fullmatch('[0-9a-f]{40}',e.get('GITHUB_SHA','')),'invalid publisher sha')
+           require(event.get('after')==e['GITHUB_SHA'] and event.get('before')==m['head'],'publisher must be single push after reviewed source')
+           require(event.get('forced') is False and event.get('deleted') is False,'forced/deleted event')
+           require(event.get('repository',{}).get('full_name')==m['repository'],'event repository mismatch')
+          
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+           def redirect_request(self,*args,**kwargs):return None
+          class API:
+           def __init__(self,token,write=False):self.token=token;self.write=write;self.opener=urllib.request.build_opener(NoRedirect)
+           def request(self,method,path,body=None,binary=False):
+            require(method=='GET' or self.write,'read-only API')
+            url=path if path.startswith('https://') else 'https://api.github.com'+path
+            u=urllib.parse.urlsplit(url);require(u.scheme=='https' and u.hostname in ('api.github.com','uploads.github.com') and not u.username,'untrusted API endpoint')
+            data=body if isinstance(body,bytes) else json.dumps(body).encode() if body is not None else None
+            # Actions artifact archives negotiate a JSON API redirect; release assets use octet-stream.
+            accept='application/octet-stream' if binary and re.fullmatch(r'/repos/[^/]+/[^/]+/releases/assets/[0-9]+',u.path) else 'application/vnd.github+json'
+            endpoint=method+' '+u.path
+            print('GitHub request:',endpoint,flush=True)
+            headers={'Authorization':'Bearer '+self.token,'Accept':accept,'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/octet-stream' if isinstance(body,bytes) else 'application/json'}
+            try:
+             response=self.opener.open(urllib.request.Request(url,data=data,method=method,headers=headers),timeout=180)
+            except urllib.error.HTTPError as ex:
+             if ex.code==404 and method=='GET' and not binary:return None
+             if ex.code in (301,302,303,307,308) and method=='GET' and binary:
+              target=ex.headers.get('Location','');host=urllib.parse.urlsplit(target)
+              require(host.scheme=='https' and not host.username and host.hostname and (host.hostname.endswith('.blob.core.windows.net') or host.hostname=='release-assets.githubusercontent.com' or host.hostname.endswith('.githubusercontent.com')),'untrusted download redirect')
+              # Fresh request without Authorization; no automatic chained redirects.
+              try:response=self.opener.open(urllib.request.Request(target,headers={'Accept':'application/octet-stream'}),timeout=180)
+              except Exception:raise Stop('redirected download failed (URL redacted)') from None
+             else:raise Stop('GitHub HTTP '+str(ex.code)+' at '+endpoint+' (body/query redacted)') from None
+            except Exception:raise Stop('GitHub request failed at '+endpoint+' (details redacted)') from None
+            with response:
+             data=response.read(512*1024*1024+1);require(len(data)<=512*1024*1024,'response exceeds limit')
+            return data if binary else json.loads(data)
+          
+          def verify_publisher(api,m,publisher):
+           root='/repos/'+m['repository']
+           ref=api.request('GET',root+'/git/ref/heads/'+m['publish_branch'])
+           require(ref and ref['object']['sha']==publisher,'publisher branch changed')
+           commit=api.request('GET',root+'/commits/'+publisher)
+           require(commit and [p['sha'] for p in commit['parents']]==[m['head']],'publisher parent mismatch')
+           require(len(commit['files'])==1 and commit['files'][0]['filename']==m['workflow_path'] and commit['files'][0]['status']=='added','publisher must only add fixed workflow')
+          
+          # Only the fixed metadata correction writes below are permitted.
+          RELEASE_KEYS=('id','tag_name','target_commitish','name','body','draft','prerelease')
+          ASSET_KEYS=('id','name','label','size','digest','state')
+          def asset_snapshot(a):
+           out={k:a.get(k) for k in ASSET_KEYS}
+           # GitHub uses either null or empty string for an asset without a display label.
+           if out['label'] is None:out['label']=''
+           return out
+          def release_snapshot(r):
+           return {**{k:r.get(k) for k in RELEASE_KEYS},'assets':sorted((asset_snapshot(a) for a in r['assets']),key=lambda a:a['id'])}
+          def validate_manifest(m):
+           a={a['id']:a for a in m['release']['assets']};require(len(a)==len(m['release']['assets']),'duplicate original assets')
+           require(len({c['id'] for c in m['changes']})==len(m['changes']),'duplicate change id')
+           changed={}
+           for c in m['changes']:
+            require(c['id'] in a,'unknown asset id');require(set(c)=={'id','name','label'},'unexpected asset changes')
+            require(re.fullmatch(r'[A-Za-z0-9_.-]+',c['name']) and c['name'] not in ('.','..'),'unsafe name');changed[c['id']]=c
+           names=[changed.get(i,x)['name'] for i,x in a.items()]
+           require(len(set(names))==len(names),'asset name collision')
+           require(m['checksum']['name']=='CURRENT-DOWNLOAD-SHA256SUMS.txt' and m['checksum']['name'] not in names,'checksum collision')
+           packages=[(changed.get(i,x)['name'],x['digest']) for i,x in a.items() if x['name'].endswith(('.zip','.exe'))]
+           require(packages and all(re.fullmatch('sha256:[0-9a-f]{64}',d) for n,d in packages),'missing package digest')
+           require(m['checksum']['text']==''.join(d[7:]+'  '+n+'\n' for n,d in sorted(packages)),'checksum content mismatch')
+           require(set(m['patch'])=={'name','body','prerelease','draft','make_latest'} and m['patch']['draft'] is False,'invalid release patch')
+           require((m['patch']['prerelease'],m['patch']['make_latest']) in ((True,'false'),(False,'true')),'latest/prerelease mismatch')
+          
+          def authorize_write(m,method,path,body):
+           root='/repos/'+m['repository'];rid=str(m['release']['id'])
+           if method=='PATCH' and path==root+'/releases/'+rid:
+            require(body==m['patch'],'release patch mismatch');return
+           for c in m['changes']:
+            if method=='PATCH' and path==root+'/releases/assets/'+str(c['id']):
+             require(body=={'name':c['name'],'label':c['label']},'asset patch mismatch');return
+           url='https://uploads.github.com'+root+'/releases/'+rid+'/assets?name='+m['checksum']['name']
+           if method=='POST' and path==url:
+            require(body==m['checksum']['text'].encode(),'checksum bytes mismatch');return
+           raise Stop('write outside exact correction scope')
+          
+          class CorrectionAPI(API):
+           def __init__(self,token,m,write=False):super().__init__(token,write);self.m=m
+           def request(self,method,path,body=None,binary=False):
+            if method!='GET':authorize_write(self.m,method,path,body)
+            return super().request(method,path,body,binary)
+          
+          def verify_identity(api,m):
+           root='/repos/'+m['repository']
+           tag=api.request('GET',root+'/git/ref/tags/'+urllib.parse.quote(m['release']['tag_name'],safe=''))
+           require(tag and tag['object']['type']=='commit' and tag['object']['sha']==m['head'],'tag target changed')
+           main=api.request('GET',root+'/git/ref/heads/main');require(main and main['object']['sha']==m['main'],'main changed')
+           for run in m['runs']:
+            got=api.request('GET',root+'/actions/runs/'+str(run['id']))
+            require(got and all(got.get(k)==run[k] for k in ('id','head_sha','run_attempt')) and got['repository']['full_name']==m['repository'] and got['status']=='completed' and got['conclusion']=='success','original CI binding changed')
+          
+          def verify_history(api,m):
+           root='/repos/'+m['repository']
+           for expected in m['old_releases']:
+            actual=api.request('GET',root+'/releases/'+str(expected['id']))
+            require(actual and release_snapshot(actual)==expected,'historical release changed')
+          
+          def latest_id(api,m):
+           got=api.request('GET','/repos/'+m['repository']+'/releases/latest');return got['id'] if got else None
+          
+          def verify(api,m):
+           validate_manifest(m);verify_identity(api,m);verify_history(api,m)
+           require(latest_id(api,m)==m['latest_before'],'latest changed')
+           got=api.request('GET','/repos/'+m['repository']+'/releases/'+str(m['release']['id']))
+           require(got and release_snapshot(got)==release_snapshot(m['release']),'release snapshot changed')
+           require(not got.get('immutable',False),'release is immutable')
+           return got
+          
+          def expected_assets(m,checksum_id=None):
+           out={a['id']:asset_snapshot(a) for a in m['release']['assets']}
+           for c in m['changes']:out[c['id']].update(c)
+           if checksum_id is not None:
+            data=m['checksum']['text'].encode();out[checksum_id]={'id':checksum_id,'name':m['checksum']['name'],'label':'','size':len(data),'digest':'sha256:'+sha(data),'state':'uploaded'}
+           return sorted(out.values(),key=lambda a:a['id'])
+          
+          def verify_assets(api,m,checksum_id=None):
+           got=api.request('GET','/repos/'+m['repository']+'/releases/'+str(m['release']['id'])+'/assets?per_page=100')
+           require(isinstance(got,list) and sorted((asset_snapshot(a) for a in got),key=lambda a:a['id'])==expected_assets(m,checksum_id),'corrected assets mismatch')
+          
+          def correct(api,m):
+           verify(api,m);root='/repos/'+m['repository'];rid=str(m['release']['id']);last='none'
+           try:
+            for c in m['changes']:
+             path=root+'/releases/assets/'+str(c['id']);body={'name':c['name'],'label':c['label']}
+             authorize_write(m,'PATCH',path,body);last='asset PATCH '+str(c['id'])
+             result=api.request('PATCH',path,body)
+             expected=next(a for a in expected_assets(m) if a['id']==c['id'])
+             require(asset_snapshot(result)==expected,'asset PATCH response mismatch')
+            verify_assets(api,m)
+            data=m['checksum']['text'].encode();url='https://uploads.github.com'+root+'/releases/'+rid+'/assets?name='+m['checksum']['name']
+            authorize_write(m,'POST',url,data);last='checksum upload'
+            added=api.request('POST',url,data);newid=added['id']
+            require(newid not in {a['id'] for a in m['release']['assets']},'checksum id collision')
+            verify_assets(api,m,newid)
+            verify_identity(api,m);verify_history(api,m)
+            require(latest_id(api,m)==m['latest_before'],'latest changed before final PATCH')
+            current=api.request('GET',root+'/releases/'+rid)
+            require(all(current.get(k)==m['release'].get(k) for k in RELEASE_KEYS),'release metadata changed before final PATCH')
+            path=root+'/releases/'+rid;authorize_write(m,'PATCH',path,m['patch']);last='final release PATCH'
+            api.request('PATCH',path,m['patch'])
+            final=api.request('GET',path)
+            require(all(final.get(k)==m['release'].get(k) for k in ('id','tag_name','target_commitish')),'release identity changed')
+            require(all(final.get(k)==m['patch'][k] for k in ('name','body','draft','prerelease')),'final release metadata mismatch')
+            verify_assets(api,m,newid);verify_identity(api,m);verify_history(api,m)
+            require(latest_id(api,m)==(m['release']['id'] if m['patch']['make_latest']=='true' else m['latest_before']),'final latest mismatch')
+            print('CORRECTION_VERIFIED',json.dumps({'repository':m['repository'],'release_id':m['release']['id'],'title':m['patch']['name'],'prerelease':m['patch']['prerelease'],'checksum_asset_id':newid}))
+            return final
+           except Exception as ex:
+            raise Stop('correction outcome may be partial or uncertain after '+last+'; do not retry automatically; reconcile fixed release/asset IDs first'+('; '+str(ex) if isinstance(ex,Stop) else '')) from None
+          
+          def correction_main(m,mode):
+           guard(m,os.environ,json.load(open(os.environ['GITHUB_EVENT_PATH'])))
+           require(mode in ('verify','correct'),'invalid mode')
+           api=CorrectionAPI(os.environ['GITHUB_TOKEN'],m,write=mode=='correct')
+           verify_publisher(api,m,os.environ['GITHUB_SHA'])
+           if mode=='verify':verify(api,m);print('READ_ONLY_CORRECTION_CHECK_PASSED',m['repository'])
+           else:correct(api,m)
+          
+          MANIFEST=json.loads('{"changes": [{"id": 695979013, "label": "\\u539f\\u59cb\\u6784\\u5efa\\u6765\\u6e90\\u8bb0\\u5f55\\uff08\\u4fdd\\u7559\\u65e7\\u6587\\u4ef6\\u540d\\u4e0e\\u521d\\u6b21\\u53d1\\u5e03\\u72b6\\u6001\\uff09", "name": "provenance.json"}, {"id": 695978905, "label": "RHI CN 2.8.9 Beta 2 \\u00b7 \\u4fbf\\u643a\\u7248", "name": "RHI-CN-v2.8.9-beta2-zh20261101-portable.zip"}, {"id": 695978810, "label": "RHI CN 2.8.9 Beta 2 \\u00b7 \\u5b89\\u88c5\\u7248", "name": "RHI-CN-v2.8.9-beta2-zh20261101-Setup.exe"}, {"id": 695979039, "label": "\\u539f\\u59cb\\u6784\\u5efa\\u6821\\u9a8c\\u8bb0\\u5f55\\uff08\\u65e7\\u6587\\u4ef6\\u540d\\uff09\\uff1b\\u5f53\\u524d\\u4e0b\\u8f7d\\u8bf7\\u7528 CURRENT-DOWNLOAD-SHA256SUMS.txt", "name": "SHA256SUMS"}], "checksum": {"name": "CURRENT-DOWNLOAD-SHA256SUMS.txt", "text": "b801b4ab653b823629b7b5f3a091335c199bdd89b6c1beec8fa251144c033184  RHI-CN-v2.8.9-beta2-zh20261101-Setup.exe\\nb6fe9afabccb6d6b8d8069440a3b8d530a7794403d3cfb6ff5674e8aaf9f5c3a  RHI-CN-v2.8.9-beta2-zh20261101-portable.zip\\n"}, "head": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2", "latest_before": 428477087, "main": "48f5f18ed997c220ae3da62bbca1d3e7d10af337", "old_releases": [{"assets": [{"digest": "sha256:0e47e4feaf91fd8d5e69f21d5cee33f46d69a12e7d4e9a2d88c3a35d25182107", "id": 690173836, "label": "", "name": "RHI-CN-2.8.8-Setup.exe", "size": 43992472, "state": "uploaded"}, {"digest": "sha256:12af50b44361bd309a4bb9cdbee5efb5b79ed0f628d2e4f06e179ecf70f51f17", "id": 690173837, "label": "", "name": "RHI-CN-2.8.8-portable.zip", "size": 66142724, "state": "uploaded"}], "body": "# RHI-CN 2.8.8\\r\\n\\r\\n- Upstream release: RHI-2.8.8\\r\\n- Upstream commit: `368942888b3ab57c8c68292d2601d53204888680`\\r\\n- Simplified Chinese coverage: 99.79%\\r\\n- English fallback keys: 6\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-10-29 22:56:48\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 428477087, "name": "RHI-CN 2.8.8", "prerelease": false, "tag_name": "RHI-CN-2.8.8", "target_commitish": "676e079daedd4406c8bd4590ea032d4ab9345ace"}, {"assets": [{"digest": "sha256:bbd8dc12bb5fc570e75f79892150832453b9f931e98fbd909f13d35d6e03fe32", "id": 658580836, "label": "", "name": "RHI-CN-2.8.7-Setup.exe", "size": 43979476, "state": "uploaded"}, {"digest": "sha256:e6d827653114f614e3334f6fed2e9d80d5d2da0d8a9fe14d7ad4667ff15a70f7", "id": 658580838, "label": "", "name": "RHI-CN-2.8.7-portable.zip", "size": 66134433, "state": "uploaded"}], "body": "# RHI-CN 2.8.7\\r\\n\\r\\n- Upstream release: RHI-2.8.7\\r\\n- Upstream commit: `4bb5e5c52f219d2112c93e4e33a666bd66baeafe`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-10-20 07:19:02\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 418107484, "name": "RHI-CN 2.8.7", "prerelease": false, "tag_name": "RHI-CN-2.8.7", "target_commitish": "e00b47488a28490effd0eebb67e4888763744d8e"}, {"assets": [{"digest": "sha256:b271f21a9a176a42187aa73d0beef6c408d4478495ec5c80aa37a72c2f8d219c", "id": 599380556, "label": "", "name": "RHI-CN-2.7.9-Setup.exe", "size": 26501516, "state": "uploaded"}, {"digest": "sha256:bffb5f3cd2aa55aa2959854d23837b524e168191e70ab9ae25488a0070d0fa7e", "id": 599380557, "label": "", "name": "RHI-CN-2.7.9-portable.zip", "size": 39019377, "state": "uploaded"}], "body": "# RHI-CN 2.7.9\\r\\n\\r\\n- Upstream release: RHI-2.7.9\\r\\n- Upstream commit: `94da8c3ab0d878db91588fdd2c14bcf4c3b354fd`\\r\\n- Simplified Chinese coverage: 99.17%\\r\\n- English fallback keys: 21\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-29 22:30:23\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 399574711, "name": "RHI-CN 2.7.9", "prerelease": false, "tag_name": "RHI-CN-2.7.9", "target_commitish": "53db589e3f7d0996a528f30bf4d61c63dc536970"}, {"assets": [{"digest": "sha256:e1432bb4943065683d9f0ba3ed259d517f26531e5553084988a9bddc9183156f", "id": 593816861, "label": "", "name": "RHI-CN-2.7.8-portable.zip", "size": 39005450, "state": "uploaded"}, {"digest": "sha256:f5376674f4218882fbe1b6aa53eaf2ec91bbba3923753dc79589983a823eba32", "id": 593816862, "label": "", "name": "RHI-CN-2.7.8-Setup.exe", "size": 26493002, "state": "uploaded"}], "body": "# RHI-CN 2.7.8\\r\\n\\r\\n- Upstream release: RHI-2.7.8\\r\\n- Upstream commit: `fe56fe438e26485c0aba0d81700aa0ed6f51f92b`\\r\\n- Simplified Chinese coverage: 99.56%\\r\\n- English fallback keys: 11\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-27 21:32:40\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 397821412, "name": "RHI-CN 2.7.8", "prerelease": false, "tag_name": "RHI-CN-2.7.8", "target_commitish": "2feae6da120bcfdc6acb7e96544d154c00cdb44a"}, {"assets": [{"digest": "sha256:68fe0ed8e7767519e6bd2a5d3cede7e86f51fda68237958a28fb768404046853", "id": 586904761, "label": "", "name": "RHI-CN-2.7.6-Setup.exe", "size": 26479515, "state": "uploaded"}, {"digest": "sha256:87d886c3d02390c2268e932072097c644fcfc80d571ab9aa80110de2a92edac7", "id": 586904762, "label": "", "name": "RHI-CN-2.7.6-portable.zip", "size": 38982505, "state": "uploaded"}], "body": "# RHI-CN 2.7.6\\r\\n\\r\\n- Upstream release: RHI-2.7.6\\r\\n- Upstream commit: `10de2bb36b15ce1a056dcd926593559d5698b9df`\\r\\n- Simplified Chinese coverage: 99.68%\\r\\n- English fallback keys: 8\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-24 21:42:10\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 396102021, "name": "RHI-CN 2.7.6", "prerelease": false, "tag_name": "RHI-CN-2.7.6", "target_commitish": "3f8af0f06664a76516f3f3cab635259a7a5fd8bc"}, {"assets": [{"digest": "sha256:0675abd5e3b05dab110cc4b99cca47efda6719e29e82cea465aa1d2a71f6e882", "id": 585273118, "label": "", "name": "RHI-CN-2.7.5-r1-Setup.exe", "size": 26440679, "state": "uploaded"}, {"digest": "sha256:3b0247158ee36531021195ffd3aa642b9151237081b1565dd89b0a4c968058ed", "id": 585273119, "label": "", "name": "RHI-CN-2.7.5-r1-portable.zip", "size": 38944698, "state": "uploaded"}], "body": "# RHI-CN 2.7.5 r1\\r\\n\\r\\n- Upstream release: RHI-2.7.5\\r\\n- Upstream commit: `a94a574515da3a0864f76a6d120dc4957f61e91f`\\r\\n- Application file version: 2.7.5.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-24 06:01:10\\r\\n\\r\\nThis r1 release supersedes the original RHI-CN 2.7.5 release.\\r\\nIt rebuilds the exact upstream RHI-2.7.5 source with the reviewed translations added after the original release.\\r\\nSimplified Chinese coverage is 100% with zero English runtime fallback keys.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 395377722, "name": "RHI-CN 2.7.5 r1", "prerelease": false, "tag_name": "RHI-CN-2.7.5-r1", "target_commitish": "574471e936ec84008213ffe8246d94e9d93264ea"}, {"assets": [{"digest": "sha256:075641db9c669c90bc5b09259c2e286de027bc2d5a49513b92813dacf6af466e", "id": 577553841, "label": "", "name": "RHI-CN-2.7.5-Setup.exe", "size": 26455790, "state": "uploaded"}, {"digest": "sha256:817e0f869be2ebe84304dbf97835d938e634011e5c30a828623b76cdfe41bbf6", "id": 577553844, "label": "", "name": "RHI-CN-2.7.5-portable.zip", "size": 38938674, "state": "uploaded"}], "body": "# RHI-CN 2.7.5\\r\\n\\r\\n- Upstream release: RHI-2.7.5\\r\\n- Upstream commit: `a94a574515da3a0864f76a6d120dc4957f61e91f`\\r\\n- Simplified Chinese coverage: 98.74%\\r\\n- English fallback keys: 31\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-20 21:01:01\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 392572810, "name": "RHI-CN 2.7.5", "prerelease": false, "tag_name": "RHI-CN-2.7.5", "target_commitish": "ee21b7d77971de071db06ee011129e3f763d8670"}, {"assets": [{"digest": "sha256:9e7a17f528b09abc4432a6a1c3543d9ee60f99dcebfa322295c7823025b2cf61", "id": 575477072, "label": "", "name": "RHI-CN-2.7.4-portable.zip", "size": 38934336, "state": "uploaded"}, {"digest": "sha256:aa4ed07dd76852f023a02517c5e089438ed39bb61976aea51ba3f5814a79219a", "id": 575477075, "label": "", "name": "RHI-CN-2.7.4-Setup.exe", "size": 26439971, "state": "uploaded"}], "body": "# RHI-CN 2.7.4\\r\\n\\r\\n- Upstream release: RHI-2.7.4\\r\\n- Upstream commit: `fa0e9793acc4fcf191937b7e9c0d15769e3799ce`\\r\\n- Simplified Chinese coverage: 98.78%\\r\\n- English fallback keys: 30\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-19 20:56:08\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 392211985, "name": "RHI-CN 2.7.4", "prerelease": false, "tag_name": "RHI-CN-2.7.4", "target_commitish": "9f2d200872b76e29f3be93d832f1f03e6aaf85e9"}, {"assets": [{"digest": "sha256:da7b63b817122660edf889dad93c62f085aa889d00773ced119aaba3d011c6e1", "id": 568840317, "label": "", "name": "RHI-CN-2.7.2-Setup.exe", "size": 26425910, "state": "uploaded"}, {"digest": "sha256:2f86d8d13376e195dfda24486ac01693c9655153bc12659af7e46f0c55cd1e31", "id": 568840318, "label": "", "name": "RHI-CN-2.7.2-portable.zip", "size": 38905718, "state": "uploaded"}], "body": "# RHI-CN 2.7.2\\r\\n\\r\\n- Upstream release: RHI-2.7.2\\r\\n- Upstream commit: `835d06ba0595bb8fcd8fe63da3e0c5d0f0dc690f`\\r\\n- Simplified Chinese coverage: 99.71%\\r\\n- English fallback keys: 7\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-16 21:33:26\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 390289241, "name": "RHI-CN 2.7.2", "prerelease": false, "tag_name": "RHI-CN-2.7.2", "target_commitish": "ad874abbc70c9dfa6598c5afc59b3bb4b9e81309"}, {"assets": [{"digest": "sha256:553fc3dc40ca6acf9787829a1c41c5d1aadb5ccb32c733ae35ec91f8295a9254", "id": 564841103, "label": "", "name": "RHI-CN-2.7.1-Setup.exe", "size": 26419313, "state": "uploaded"}, {"digest": "sha256:93df2c837f33aba3bbd4ddf2aed8753053326a71fc5a3a1e217d37e4b63d71ca", "id": 564841108, "label": "", "name": "RHI-CN-2.7.1-portable.zip", "size": 38888432, "state": "uploaded"}], "body": "# RHI-CN 2.7.1\\r\\n\\r\\n- Upstream release: RHI-2.7.1\\r\\n- Upstream commit: `f9531b98234335230ea0b157c3d4ef3842858940`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-15 04:03:23\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388859417, "name": "RHI-CN 2.7.1", "prerelease": false, "tag_name": "RHI-CN-2.7.1", "target_commitish": "c5d40d790023a1310634a04f44ec6bf5ff81dee7"}, {"assets": [{"digest": "sha256:6716090d9ed1efcfa90e37335b8205d8040fc3d8988353cb78c40905e1e6f3c0", "id": 564525737, "label": "", "name": "RHI-CN-2.7.0-r5-Setup.exe", "size": 26380586, "state": "uploaded"}, {"digest": "sha256:a8d115e1d1d25f56172215956f37a65e903e8daa6bc7e9aeb2ee63a5a40b9d0e", "id": 564525738, "label": "", "name": "RHI-CN-2.7.0-r5-portable.zip", "size": 38842270, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r5\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Application file version: 2.7.0.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-15 00:28:39\\r\\n\\r\\nThis r5 release supersedes RHI-CN 2.7.0 r4.\\r\\nIt includes the R4 settings ComboBox stability fix, Tooltip localization fix for mixed ternary/interpolated expressions, and the reviewed runtime fallback cleanup.\\r\\nCI now enforces zero English runtime fallback so missing translations cannot pass silently.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388791436, "name": "RHI-CN 2.7.0 r5", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r5", "target_commitish": "e9dcd40893a13380b96eb9cabac0c8bd33c30166"}, {"assets": [{"digest": "sha256:01674d4b2330ce91f5cc77ca352755d24ec4aab394e21585993b138c78d316d9", "id": 563489568, "label": "", "name": "RHI-CN-2.7.0-r4-Setup.exe", "size": 26369684, "state": "uploaded"}, {"digest": "sha256:a8326fa8e2fee9912a490854c20dba60655d8f93480c6b65ee9ad19e33e5db5d", "id": 563489572, "label": "", "name": "RHI-CN-2.7.0-r4-portable.zip", "size": 38813386, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r4\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Application file version: 2.7.0.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-14 13:49:26\\r\\n\\r\\nThis r4 release supersedes RHI-CN 2.7.0 r3.\\r\\nIt closes remaining runtime-visible English localization gaps in dynamic status/action text, inclusion controls, addon controls, combo-box display values, RTX 40 MFG guidance, and other runtime-generated labels.\\r\\nIt also hardens dynamic Text localization so method calls and ternary/control expressions are not corrupted by the transform.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388434996, "name": "RHI-CN 2.7.0 r4", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r4", "target_commitish": "3844779b0f6a48c80cf5878b39661f2a89ddad06"}, {"assets": [{"digest": "sha256:709b96e3d2209bea0fb641a22d7bf45e0340825a9eba78fd5233124cb1ae373d", "id": 562321404, "label": "", "name": "RHI-CN-2.7.0-r3-portable.zip", "size": 38800643, "state": "uploaded"}, {"digest": "sha256:2005d284ddb21c5adafacb2d94f7d8e8b3d221629b6a961e4a91c3573e72bef4", "id": 562321406, "label": "", "name": "RHI-CN-2.7.0-r3-Setup.exe", "size": 26351634, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r3\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Application file version: 2.7.0.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-14 01:45:48\\r\\n\\r\\nThis r3 release supersedes RHI-CN 2.7.0 r2.\\r\\nIt corrects the application version metadata from 2.6.9.0 to 2.7.0.0 and expands Simplified Chinese localization for runtime-generated UI, including Quick Start/FAQ content, view mode labels, combo-box display values, action/status text, and tooltips.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388102751, "name": "RHI-CN 2.7.0 r3", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r3", "target_commitish": "e84fa63b13b1f40685b459c2dbf079450b090425"}, {"assets": [{"digest": "sha256:418ef16a3cbc90991ca383f99874e18b17e3a03653eab507ff53a0775c8c272c", "id": 561446892, "label": "", "name": "RHI-CN-2.7.0-r2-portable.zip", "size": 38677869, "state": "uploaded"}, {"digest": "sha256:c0ce972e757c53865826fda7bd0a3db7bf8638d0e112f983553b43b6a6655e95", "id": 561446893, "label": "", "name": "RHI-CN-2.7.0-r2-Setup.exe", "size": 26307321, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r2\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-13 15:30:36\\r\\n\\r\\nThis r2 release supersedes RHI-CN 2.7.0 r1. It fixes the startup failure after first-launch setup caused by assigning WinUI3Localizer Uids.Uid to the WinUI 3 root Window.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 387943203, "name": "RHI-CN 2.7.0 r2", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r2", "target_commitish": "5d77b417e0c7008eee0bb012e47fac65f3ae66bc"}, {"assets": [{"digest": "sha256:a375f59835aa7d36aa2a55174511d58b6b19b47ebbad72dfc97bca96e5827c62", "id": 561253115, "label": "", "name": "RHI-CN-2.7.0-r1-Setup.exe", "size": 26305620, "state": "uploaded"}, {"digest": "sha256:dc30290be87ac178413f65ee94d34ea7b31657d269aad388d1ecd9d179cacb58", "id": 561253116, "label": "", "name": "RHI-CN-2.7.0-r1-portable.zip", "size": 38678160, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r1\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-13 13:20:09\\r\\n\\r\\nThis r1 release supersedes RHI-CN 2.7.0 (99.69% coverage). It is rebuilt from the same official RHI-2.7.0 tag with the three formal-tag-only strings translated.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 387906849, "name": "RHI-CN 2.7.0 r1", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r1", "target_commitish": "4c30debb20fc0c762f4dae85ba46d03913b90fb2"}, {"assets": [{"digest": "sha256:71f0499c2fc6e0a836f89873c8d99b56a0cbda721d00be55d83e287a4f634b80", "id": 561129195, "label": "", "name": "RHI-CN-2.7.0-portable.zip", "size": 38677979, "state": "uploaded"}, {"digest": "sha256:6cc08dc6b858b52c631d19d1c5894ff05db4888d8040a07e45b6c0af2c7ed0a0", "id": 561129196, "label": "", "name": "RHI-CN-2.7.0-Setup.exe", "size": 26317034, "state": "uploaded"}], "body": "# RHI-CN 2.7.0\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Simplified Chinese coverage: 99.69%\\r\\n- English fallback keys: 3\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-13 11:51:00\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 387883650, "name": "RHI-CN 2.7.0", "prerelease": false, "tag_name": "RHI-CN-2.7.0", "target_commitish": "4df2b4b7f59359f49a83325edd63d8c155619d4e"}], "patch": {"body": "## \\u7248\\u672c\\u8bf4\\u660e\\n\\u672c\\u8f6e\\u57fa\\u4e8e\\u4e0a\\u6e38 2.8.9 Beta 2\\u3002\\u4e0a\\u6e38\\u7a0b\\u5e8f\\u96c6/\\u5b89\\u88c5\\u5668\\u5185\\u90e8\\u7248\\u672c\\u4ecd\\u663e\\u793a 2.8.8\\uff0c\\u672c\\u6b21\\u4ec5\\u7ea0\\u6b63\\u5916\\u90e8\\u4e0b\\u8f7d\\u540d\\uff0c\\u4e8c\\u8fdb\\u5236\\u672a\\u4fee\\u6539\\uff1b\\u8fd9\\u4e0d\\u662f\\u65e7\\u7684 2.8.8 \\u6b63\\u5f0f\\u6784\\u5efa\\u3002\\n\\n\\u6c49\\u5316\\u66f4\\u65b0\\u6807\\u8bc6\\uff1a2026-11-01\\uff08\\u5317\\u4eac\\u65f6\\u95f4\\uff09\\u3002\\u8fd9\\u662f\\u540c\\u4e00\\u6279\\u5df2\\u6784\\u5efa\\u3001\\u5df2\\u9a8c\\u6536\\u6587\\u4ef6\\u7684\\u547d\\u540d\\u4e0e\\u53d1\\u5e03\\u72b6\\u6001\\u4fee\\u6b63\\uff0c\\u6ca1\\u6709\\u91cd\\u65b0\\u7f16\\u8bd1\\u3001\\u91cd\\u6253\\u5305\\u6216\\u4fee\\u6539\\u7a0b\\u5e8f\\u5185\\u5bb9\\u3002\\n\\n## \\u4e0b\\u8f7d\\u4e0e\\u6821\\u9a8c\\n\\u8bf7\\u6309\\u6587\\u4ef6\\u540d\\u4e2d\\u7684\\u4ea7\\u54c1\\u7248\\u672c\\u548c\\u5305\\u7c7b\\u578b\\u4e0b\\u8f7d\\uff1b\\u4f7f\\u7528\\u9644\\u4ef6 **CURRENT-DOWNLOAD-SHA256SUMS.txt** \\u6821\\u9a8c\\u5f53\\u524d\\u4e0b\\u8f7d\\u6587\\u4ef6\\u3002\\n\\u539f\\u59cb SHA256SUMS\\u3001provenance.json\\u3001build-metadata.json\\uff08\\u5982\\u6709\\uff09\\u53ca .sha256\\uff08\\u5982\\u6709\\uff09\\u5747\\u539f\\u6837\\u4fdd\\u7559\\uff0c\\u662f\\u521d\\u6b21\\u6784\\u5efa/\\u53d1\\u5e03\\u7684\\u5386\\u53f2\\u8bc1\\u636e\\uff0c\\u53ef\\u80fd\\u5f15\\u7528\\u65e7\\u6587\\u4ef6\\u540d\\u6216\\u521d\\u6b21\\u5019\\u9009\\u72b6\\u6001\\uff0c\\u4e0d\\u4f5c\\u4e3a\\u5f53\\u524d\\u547d\\u540d\\u8bf4\\u660e\\u3002\\n\\n## \\u9a8c\\u8bc1\\u8303\\u56f4\\nWindows CI\\u3001\\u81ea\\u52a8\\u6d4b\\u8bd5\\u3001\\u5305\\u5b8c\\u6574\\u6027\\u53ca\\u54c8\\u5e0c\\u68c0\\u67e5\\u5df2\\u901a\\u8fc7\\u3002\\u5c1a\\u672a\\u8fdb\\u884c\\u771f\\u5b9e\\u6e38\\u620f\\u3001GPU \\u6216 GUI \\u89c6\\u89c9\\u8fd0\\u884c\\u9a8c\\u8bc1\\uff1b\\u6b63\\u5f0f\\u6c49\\u5316\\u53d1\\u5e03\\u4e0d\\u8868\\u793a\\u627f\\u8bfa\\u6240\\u6709\\u6e38\\u620f\\u517c\\u5bb9\\uff0c\\u4e5f\\u4e0d\\u8868\\u793a\\u6240\\u6709\\u52a8\\u6001\\u6587\\u672c\\u5df2\\u4eba\\u5de5\\u9010\\u5c4f\\u6838\\u9a8c\\u3002\\n\\n## \\u6587\\u4ef6\\u540d\\u5bf9\\u7167\\n- `RHI-CN-2.8.8-Setup.exe` \\u2192 `RHI-CN-v2.8.9-beta2-zh20261101-Setup.exe`\\n- `RHI-CN-2.8.8-portable.zip` \\u2192 `RHI-CN-v2.8.9-beta2-zh20261101-portable.zip`\\n\\nRelease \\u9875\\u9762\\u3001\\u6807\\u7b7e\\u3001\\u6e90\\u4ee3\\u7801\\u63d0\\u4ea4\\u53ca\\u539f\\u6709\\u6587\\u4ef6 asset ID \\u4fdd\\u6301\\u4e0d\\u53d8\\uff1b\\u4e0b\\u8f7d\\u6587\\u4ef6\\u6539\\u540d\\u540e\\uff0c\\u65e7\\u6587\\u4ef6\\u540d\\u7684\\u76f4\\u63a5\\u4e0b\\u8f7d\\u94fe\\u63a5\\u53ef\\u80fd\\u5931\\u6548\\uff0c\\u8bf7\\u4ece\\u672c\\u53d1\\u5e03\\u9875\\u4f7f\\u7528\\u65b0\\u94fe\\u63a5\\u3002\\u6807\\u7b7e\\u4e2d\\u7684 candidate \\u662f\\u4fdd\\u7559\\u7684\\u5386\\u53f2\\u5b9a\\u4f4d\\u7b26\\uff0c\\u5f53\\u524d\\u53d1\\u5e03\\u6027\\u8d28\\u4ee5\\u672c\\u9875\\u6807\\u8bb0\\u548c\\u7248\\u672c\\u8bf4\\u660e\\u4e3a\\u51c6\\u3002\\u65e7\\u7248\\u53d1\\u5e03\\u4e0e\\u9644\\u4ef6\\u672a\\u4fee\\u6539\\u3002\\n\\n## \\u6784\\u5efa\\u6765\\u6e90\\n- \\u6c49\\u5316\\u6e90\\u63d0\\u4ea4\\uff1a`9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2`\\n- \\u5b9e\\u9645 CI checkout\\uff1a`e379a050cdb6d3be001be583b1e9b6adc71f8ce0`\\n- \\u6e90\\u7801\\u6811\\uff1a`e58a431e321a93cc579d03b95e0cbaefaa1aa84e`\\n- \\u4e0a\\u6e38\\u63d0\\u4ea4\\uff1a`7c8eee421d9d0d5c47e7b89425f46371b282d088`\\n", "draft": false, "make_latest": "false", "name": "RHI CN 2.8.9 Beta 2 \\u00b7 \\u6c49\\u5316\\u66f4\\u65b0 2026-11-01", "prerelease": true}, "publish_branch": "release-metadata/20261101-9dcf8d25", "release": {"assets": [{"digest": "sha256:b801b4ab653b823629b7b5f3a091335c199bdd89b6c1beec8fa251144c033184", "id": 695978810, "label": "", "name": "RHI-CN-2.8.8-Setup.exe", "size": 44102489, "state": "uploaded"}, {"digest": "sha256:b6fe9afabccb6d6b8d8069440a3b8d530a7794403d3cfb6ff5674e8aaf9f5c3a", "id": 695978905, "label": "", "name": "RHI-CN-2.8.8-portable.zip", "size": 66278257, "state": "uploaded"}, {"digest": "sha256:a6ff5b394e50a4cf28702e8224324139ed89e0c2d32faf6605fb8806fe3656a1", "id": 695979013, "label": "", "name": "provenance.json", "size": 3000, "state": "uploaded"}, {"digest": "sha256:ca1fe3062f9b5d0726c6bb54f23ead5de28f498d529e1d831e7ee3bf53c4cea2", "id": 695979039, "label": "", "name": "SHA256SUMS", "size": 263, "state": "uploaded"}], "body": "Candidate prerelease of reviewed localization maintenance; not a stable release.\\nSource: 9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2\\nActual CI checkout: e379a050cdb6d3be001be583b1e9b6adc71f8ce0\\nCommon tree: e58a431e321a93cc579d03b95e0cbaefaa1aa84e\\nUpstream: 7c8eee421d9d0d5c47e7b89425f46371b282d088\\nWindows CI and package checks passed. Game/GPU/UI visual runtime validation not performed.\\nNo previous release is replaced.\\nIMPORTANT: upstream main is 2.8.9 Beta 2, but upstream AssemblyVersion and installer/portable filenames still say 2.8.8. These files are main-branch candidates, NOT a stable RHI 2.8.8 build.\\n", "draft": false, "id": 430073881, "name": "RHI-CN 2026-10-31 candidate 9dcf8d25", "prerelease": true, "tag_name": "cn-candidate-20261031-9dcf8d25", "target_commitish": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2"}, "repository": "Night-SHANG/RHI-CN", "runs": [{"head_sha": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2", "id": 41220668057, "run_attempt": 1}, {"head_sha": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2", "id": 41220668059, "run_attempt": 1}], "workflow_path": ".github/workflows/correct-release-metadata-20261101.yml"}')
+          try:
+           correction_main(MANIFEST,'verify')
+          except Stop as ex:
+           print(str(ex),file=sys.stderr)
+           sys.exit(1)
+          PY
+  correct:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: verify
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Fixed release correct
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          """One-shot candidate retention. Stdlib only; no artifact code execution.
+          CI entry is generated inline with an immutable per-repository manifest.
+          """
+          import hashlib,io,json,os,posixpath,re,stat,sys,urllib.request,urllib.error,urllib.parse,zipfile
+          class Stop(RuntimeError):pass
+          def require(ok,message):
+           if not ok:raise Stop(message)
+          def sha(data):return hashlib.sha256(data).hexdigest()
+          def extract_assets(blob,m):
+           require(len(blob)==m['artifact']['size_in_bytes'],'archive size mismatch')
+           require('sha256:'+sha(blob)==m['artifact']['digest'],'archive hash mismatch')
+           with zipfile.ZipFile(io.BytesIO(blob)) as z:
+            infos=z.infolist();require(len(infos)<=4096,'too many members');seen=set();total=0
+            for i in infos:
+             n=i.filename
+             require(n and not n.startswith('/') and '\\' not in n and ':' not in n and not any(p in ('..','.','') for p in n.rstrip('/').split('/')),'unsafe zip path')
+             require(n not in seen,'duplicate member');seen.add(n)
+             mode=i.external_attr>>16
+             require(stat.S_IFMT(mode) in (0,stat.S_IFREG,stat.S_IFDIR),'nonregular zip entry')
+             require(not i.flag_bits&1,'encrypted entry')
+             total+=i.file_size
+             require(total<=1024*1024*1024 and i.file_size<=512*1024*1024,'archive expansion limit')
+             require(i.file_size<=max(1,i.compress_size)*1000,'compression ratio limit')
+            result={}
+            for a in m['assets']:
+             require(re.fullmatch(r'[A-Za-z0-9_.-]+',a['name']) and a['name'] not in result,'unsafe asset name')
+             require(a['member'] in seen,'missing asset')
+             data=z.read(a['member']);require(len(data)==a['size'] and sha(data)==a['sha256'],'asset mismatch')
+             result[a['name']]=data
+            return result
+          
+          def guard(m,e,event):
+           expected={'GITHUB_ACTIONS':'true','GITHUB_EVENT_NAME':'push','GITHUB_REPOSITORY':m['repository'],'GITHUB_REF':'refs/heads/'+m['publish_branch'],'GITHUB_RUN_ATTEMPT':'1','GITHUB_WORKFLOW_REF':m['repository']+'/'+m['workflow_path']+'@refs/heads/'+m['publish_branch']}
+           for k,v in expected.items():require(e.get(k)==v,'context mismatch: '+k)
+           require(re.fullmatch('[0-9a-f]{40}',e.get('GITHUB_SHA','')),'invalid publisher sha')
+           require(event.get('after')==e['GITHUB_SHA'] and event.get('before')==m['head'],'publisher must be single push after reviewed source')
+           require(event.get('forced') is False and event.get('deleted') is False,'forced/deleted event')
+           require(event.get('repository',{}).get('full_name')==m['repository'],'event repository mismatch')
+          
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+           def redirect_request(self,*args,**kwargs):return None
+          class API:
+           def __init__(self,token,write=False):self.token=token;self.write=write;self.opener=urllib.request.build_opener(NoRedirect)
+           def request(self,method,path,body=None,binary=False):
+            require(method=='GET' or self.write,'read-only API')
+            url=path if path.startswith('https://') else 'https://api.github.com'+path
+            u=urllib.parse.urlsplit(url);require(u.scheme=='https' and u.hostname in ('api.github.com','uploads.github.com') and not u.username,'untrusted API endpoint')
+            data=body if isinstance(body,bytes) else json.dumps(body).encode() if body is not None else None
+            # Actions artifact archives negotiate a JSON API redirect; release assets use octet-stream.
+            accept='application/octet-stream' if binary and re.fullmatch(r'/repos/[^/]+/[^/]+/releases/assets/[0-9]+',u.path) else 'application/vnd.github+json'
+            endpoint=method+' '+u.path
+            print('GitHub request:',endpoint,flush=True)
+            headers={'Authorization':'Bearer '+self.token,'Accept':accept,'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/octet-stream' if isinstance(body,bytes) else 'application/json'}
+            try:
+             response=self.opener.open(urllib.request.Request(url,data=data,method=method,headers=headers),timeout=180)
+            except urllib.error.HTTPError as ex:
+             if ex.code==404 and method=='GET' and not binary:return None
+             if ex.code in (301,302,303,307,308) and method=='GET' and binary:
+              target=ex.headers.get('Location','');host=urllib.parse.urlsplit(target)
+              require(host.scheme=='https' and not host.username and host.hostname and (host.hostname.endswith('.blob.core.windows.net') or host.hostname=='release-assets.githubusercontent.com' or host.hostname.endswith('.githubusercontent.com')),'untrusted download redirect')
+              # Fresh request without Authorization; no automatic chained redirects.
+              try:response=self.opener.open(urllib.request.Request(target,headers={'Accept':'application/octet-stream'}),timeout=180)
+              except Exception:raise Stop('redirected download failed (URL redacted)') from None
+             else:raise Stop('GitHub HTTP '+str(ex.code)+' at '+endpoint+' (body/query redacted)') from None
+            except Exception:raise Stop('GitHub request failed at '+endpoint+' (details redacted)') from None
+            with response:
+             data=response.read(512*1024*1024+1);require(len(data)<=512*1024*1024,'response exceeds limit')
+            return data if binary else json.loads(data)
+          
+          def verify_publisher(api,m,publisher):
+           root='/repos/'+m['repository']
+           ref=api.request('GET',root+'/git/ref/heads/'+m['publish_branch'])
+           require(ref and ref['object']['sha']==publisher,'publisher branch changed')
+           commit=api.request('GET',root+'/commits/'+publisher)
+           require(commit and [p['sha'] for p in commit['parents']]==[m['head']],'publisher parent mismatch')
+           require(len(commit['files'])==1 and commit['files'][0]['filename']==m['workflow_path'] and commit['files'][0]['status']=='added','publisher must only add fixed workflow')
+          
+          # Only the fixed metadata correction writes below are permitted.
+          RELEASE_KEYS=('id','tag_name','target_commitish','name','body','draft','prerelease')
+          ASSET_KEYS=('id','name','label','size','digest','state')
+          def asset_snapshot(a):
+           out={k:a.get(k) for k in ASSET_KEYS}
+           # GitHub uses either null or empty string for an asset without a display label.
+           if out['label'] is None:out['label']=''
+           return out
+          def release_snapshot(r):
+           return {**{k:r.get(k) for k in RELEASE_KEYS},'assets':sorted((asset_snapshot(a) for a in r['assets']),key=lambda a:a['id'])}
+          def validate_manifest(m):
+           a={a['id']:a for a in m['release']['assets']};require(len(a)==len(m['release']['assets']),'duplicate original assets')
+           require(len({c['id'] for c in m['changes']})==len(m['changes']),'duplicate change id')
+           changed={}
+           for c in m['changes']:
+            require(c['id'] in a,'unknown asset id');require(set(c)=={'id','name','label'},'unexpected asset changes')
+            require(re.fullmatch(r'[A-Za-z0-9_.-]+',c['name']) and c['name'] not in ('.','..'),'unsafe name');changed[c['id']]=c
+           names=[changed.get(i,x)['name'] for i,x in a.items()]
+           require(len(set(names))==len(names),'asset name collision')
+           require(m['checksum']['name']=='CURRENT-DOWNLOAD-SHA256SUMS.txt' and m['checksum']['name'] not in names,'checksum collision')
+           packages=[(changed.get(i,x)['name'],x['digest']) for i,x in a.items() if x['name'].endswith(('.zip','.exe'))]
+           require(packages and all(re.fullmatch('sha256:[0-9a-f]{64}',d) for n,d in packages),'missing package digest')
+           require(m['checksum']['text']==''.join(d[7:]+'  '+n+'\n' for n,d in sorted(packages)),'checksum content mismatch')
+           require(set(m['patch'])=={'name','body','prerelease','draft','make_latest'} and m['patch']['draft'] is False,'invalid release patch')
+           require((m['patch']['prerelease'],m['patch']['make_latest']) in ((True,'false'),(False,'true')),'latest/prerelease mismatch')
+          
+          def authorize_write(m,method,path,body):
+           root='/repos/'+m['repository'];rid=str(m['release']['id'])
+           if method=='PATCH' and path==root+'/releases/'+rid:
+            require(body==m['patch'],'release patch mismatch');return
+           for c in m['changes']:
+            if method=='PATCH' and path==root+'/releases/assets/'+str(c['id']):
+             require(body=={'name':c['name'],'label':c['label']},'asset patch mismatch');return
+           url='https://uploads.github.com'+root+'/releases/'+rid+'/assets?name='+m['checksum']['name']
+           if method=='POST' and path==url:
+            require(body==m['checksum']['text'].encode(),'checksum bytes mismatch');return
+           raise Stop('write outside exact correction scope')
+          
+          class CorrectionAPI(API):
+           def __init__(self,token,m,write=False):super().__init__(token,write);self.m=m
+           def request(self,method,path,body=None,binary=False):
+            if method!='GET':authorize_write(self.m,method,path,body)
+            return super().request(method,path,body,binary)
+          
+          def verify_identity(api,m):
+           root='/repos/'+m['repository']
+           tag=api.request('GET',root+'/git/ref/tags/'+urllib.parse.quote(m['release']['tag_name'],safe=''))
+           require(tag and tag['object']['type']=='commit' and tag['object']['sha']==m['head'],'tag target changed')
+           main=api.request('GET',root+'/git/ref/heads/main');require(main and main['object']['sha']==m['main'],'main changed')
+           for run in m['runs']:
+            got=api.request('GET',root+'/actions/runs/'+str(run['id']))
+            require(got and all(got.get(k)==run[k] for k in ('id','head_sha','run_attempt')) and got['repository']['full_name']==m['repository'] and got['status']=='completed' and got['conclusion']=='success','original CI binding changed')
+          
+          def verify_history(api,m):
+           root='/repos/'+m['repository']
+           for expected in m['old_releases']:
+            actual=api.request('GET',root+'/releases/'+str(expected['id']))
+            require(actual and release_snapshot(actual)==expected,'historical release changed')
+          
+          def latest_id(api,m):
+           got=api.request('GET','/repos/'+m['repository']+'/releases/latest');return got['id'] if got else None
+          
+          def verify(api,m):
+           validate_manifest(m);verify_identity(api,m);verify_history(api,m)
+           require(latest_id(api,m)==m['latest_before'],'latest changed')
+           got=api.request('GET','/repos/'+m['repository']+'/releases/'+str(m['release']['id']))
+           require(got and release_snapshot(got)==release_snapshot(m['release']),'release snapshot changed')
+           require(not got.get('immutable',False),'release is immutable')
+           return got
+          
+          def expected_assets(m,checksum_id=None):
+           out={a['id']:asset_snapshot(a) for a in m['release']['assets']}
+           for c in m['changes']:out[c['id']].update(c)
+           if checksum_id is not None:
+            data=m['checksum']['text'].encode();out[checksum_id]={'id':checksum_id,'name':m['checksum']['name'],'label':'','size':len(data),'digest':'sha256:'+sha(data),'state':'uploaded'}
+           return sorted(out.values(),key=lambda a:a['id'])
+          
+          def verify_assets(api,m,checksum_id=None):
+           got=api.request('GET','/repos/'+m['repository']+'/releases/'+str(m['release']['id'])+'/assets?per_page=100')
+           require(isinstance(got,list) and sorted((asset_snapshot(a) for a in got),key=lambda a:a['id'])==expected_assets(m,checksum_id),'corrected assets mismatch')
+          
+          def correct(api,m):
+           verify(api,m);root='/repos/'+m['repository'];rid=str(m['release']['id']);last='none'
+           try:
+            for c in m['changes']:
+             path=root+'/releases/assets/'+str(c['id']);body={'name':c['name'],'label':c['label']}
+             authorize_write(m,'PATCH',path,body);last='asset PATCH '+str(c['id'])
+             result=api.request('PATCH',path,body)
+             expected=next(a for a in expected_assets(m) if a['id']==c['id'])
+             require(asset_snapshot(result)==expected,'asset PATCH response mismatch')
+            verify_assets(api,m)
+            data=m['checksum']['text'].encode();url='https://uploads.github.com'+root+'/releases/'+rid+'/assets?name='+m['checksum']['name']
+            authorize_write(m,'POST',url,data);last='checksum upload'
+            added=api.request('POST',url,data);newid=added['id']
+            require(newid not in {a['id'] for a in m['release']['assets']},'checksum id collision')
+            verify_assets(api,m,newid)
+            verify_identity(api,m);verify_history(api,m)
+            require(latest_id(api,m)==m['latest_before'],'latest changed before final PATCH')
+            current=api.request('GET',root+'/releases/'+rid)
+            require(all(current.get(k)==m['release'].get(k) for k in RELEASE_KEYS),'release metadata changed before final PATCH')
+            path=root+'/releases/'+rid;authorize_write(m,'PATCH',path,m['patch']);last='final release PATCH'
+            api.request('PATCH',path,m['patch'])
+            final=api.request('GET',path)
+            require(all(final.get(k)==m['release'].get(k) for k in ('id','tag_name','target_commitish')),'release identity changed')
+            require(all(final.get(k)==m['patch'][k] for k in ('name','body','draft','prerelease')),'final release metadata mismatch')
+            verify_assets(api,m,newid);verify_identity(api,m);verify_history(api,m)
+            require(latest_id(api,m)==(m['release']['id'] if m['patch']['make_latest']=='true' else m['latest_before']),'final latest mismatch')
+            print('CORRECTION_VERIFIED',json.dumps({'repository':m['repository'],'release_id':m['release']['id'],'title':m['patch']['name'],'prerelease':m['patch']['prerelease'],'checksum_asset_id':newid}))
+            return final
+           except Exception as ex:
+            raise Stop('correction outcome may be partial or uncertain after '+last+'; do not retry automatically; reconcile fixed release/asset IDs first'+('; '+str(ex) if isinstance(ex,Stop) else '')) from None
+          
+          def correction_main(m,mode):
+           guard(m,os.environ,json.load(open(os.environ['GITHUB_EVENT_PATH'])))
+           require(mode in ('verify','correct'),'invalid mode')
+           api=CorrectionAPI(os.environ['GITHUB_TOKEN'],m,write=mode=='correct')
+           verify_publisher(api,m,os.environ['GITHUB_SHA'])
+           if mode=='verify':verify(api,m);print('READ_ONLY_CORRECTION_CHECK_PASSED',m['repository'])
+           else:correct(api,m)
+          
+          MANIFEST=json.loads('{"changes": [{"id": 695979013, "label": "\\u539f\\u59cb\\u6784\\u5efa\\u6765\\u6e90\\u8bb0\\u5f55\\uff08\\u4fdd\\u7559\\u65e7\\u6587\\u4ef6\\u540d\\u4e0e\\u521d\\u6b21\\u53d1\\u5e03\\u72b6\\u6001\\uff09", "name": "provenance.json"}, {"id": 695978905, "label": "RHI CN 2.8.9 Beta 2 \\u00b7 \\u4fbf\\u643a\\u7248", "name": "RHI-CN-v2.8.9-beta2-zh20261101-portable.zip"}, {"id": 695978810, "label": "RHI CN 2.8.9 Beta 2 \\u00b7 \\u5b89\\u88c5\\u7248", "name": "RHI-CN-v2.8.9-beta2-zh20261101-Setup.exe"}, {"id": 695979039, "label": "\\u539f\\u59cb\\u6784\\u5efa\\u6821\\u9a8c\\u8bb0\\u5f55\\uff08\\u65e7\\u6587\\u4ef6\\u540d\\uff09\\uff1b\\u5f53\\u524d\\u4e0b\\u8f7d\\u8bf7\\u7528 CURRENT-DOWNLOAD-SHA256SUMS.txt", "name": "SHA256SUMS"}], "checksum": {"name": "CURRENT-DOWNLOAD-SHA256SUMS.txt", "text": "b801b4ab653b823629b7b5f3a091335c199bdd89b6c1beec8fa251144c033184  RHI-CN-v2.8.9-beta2-zh20261101-Setup.exe\\nb6fe9afabccb6d6b8d8069440a3b8d530a7794403d3cfb6ff5674e8aaf9f5c3a  RHI-CN-v2.8.9-beta2-zh20261101-portable.zip\\n"}, "head": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2", "latest_before": 428477087, "main": "48f5f18ed997c220ae3da62bbca1d3e7d10af337", "old_releases": [{"assets": [{"digest": "sha256:0e47e4feaf91fd8d5e69f21d5cee33f46d69a12e7d4e9a2d88c3a35d25182107", "id": 690173836, "label": "", "name": "RHI-CN-2.8.8-Setup.exe", "size": 43992472, "state": "uploaded"}, {"digest": "sha256:12af50b44361bd309a4bb9cdbee5efb5b79ed0f628d2e4f06e179ecf70f51f17", "id": 690173837, "label": "", "name": "RHI-CN-2.8.8-portable.zip", "size": 66142724, "state": "uploaded"}], "body": "# RHI-CN 2.8.8\\r\\n\\r\\n- Upstream release: RHI-2.8.8\\r\\n- Upstream commit: `368942888b3ab57c8c68292d2601d53204888680`\\r\\n- Simplified Chinese coverage: 99.79%\\r\\n- English fallback keys: 6\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-10-29 22:56:48\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 428477087, "name": "RHI-CN 2.8.8", "prerelease": false, "tag_name": "RHI-CN-2.8.8", "target_commitish": "676e079daedd4406c8bd4590ea032d4ab9345ace"}, {"assets": [{"digest": "sha256:bbd8dc12bb5fc570e75f79892150832453b9f931e98fbd909f13d35d6e03fe32", "id": 658580836, "label": "", "name": "RHI-CN-2.8.7-Setup.exe", "size": 43979476, "state": "uploaded"}, {"digest": "sha256:e6d827653114f614e3334f6fed2e9d80d5d2da0d8a9fe14d7ad4667ff15a70f7", "id": 658580838, "label": "", "name": "RHI-CN-2.8.7-portable.zip", "size": 66134433, "state": "uploaded"}], "body": "# RHI-CN 2.8.7\\r\\n\\r\\n- Upstream release: RHI-2.8.7\\r\\n- Upstream commit: `4bb5e5c52f219d2112c93e4e33a666bd66baeafe`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-10-20 07:19:02\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 418107484, "name": "RHI-CN 2.8.7", "prerelease": false, "tag_name": "RHI-CN-2.8.7", "target_commitish": "e00b47488a28490effd0eebb67e4888763744d8e"}, {"assets": [{"digest": "sha256:b271f21a9a176a42187aa73d0beef6c408d4478495ec5c80aa37a72c2f8d219c", "id": 599380556, "label": "", "name": "RHI-CN-2.7.9-Setup.exe", "size": 26501516, "state": "uploaded"}, {"digest": "sha256:bffb5f3cd2aa55aa2959854d23837b524e168191e70ab9ae25488a0070d0fa7e", "id": 599380557, "label": "", "name": "RHI-CN-2.7.9-portable.zip", "size": 39019377, "state": "uploaded"}], "body": "# RHI-CN 2.7.9\\r\\n\\r\\n- Upstream release: RHI-2.7.9\\r\\n- Upstream commit: `94da8c3ab0d878db91588fdd2c14bcf4c3b354fd`\\r\\n- Simplified Chinese coverage: 99.17%\\r\\n- English fallback keys: 21\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-29 22:30:23\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 399574711, "name": "RHI-CN 2.7.9", "prerelease": false, "tag_name": "RHI-CN-2.7.9", "target_commitish": "53db589e3f7d0996a528f30bf4d61c63dc536970"}, {"assets": [{"digest": "sha256:e1432bb4943065683d9f0ba3ed259d517f26531e5553084988a9bddc9183156f", "id": 593816861, "label": "", "name": "RHI-CN-2.7.8-portable.zip", "size": 39005450, "state": "uploaded"}, {"digest": "sha256:f5376674f4218882fbe1b6aa53eaf2ec91bbba3923753dc79589983a823eba32", "id": 593816862, "label": "", "name": "RHI-CN-2.7.8-Setup.exe", "size": 26493002, "state": "uploaded"}], "body": "# RHI-CN 2.7.8\\r\\n\\r\\n- Upstream release: RHI-2.7.8\\r\\n- Upstream commit: `fe56fe438e26485c0aba0d81700aa0ed6f51f92b`\\r\\n- Simplified Chinese coverage: 99.56%\\r\\n- English fallback keys: 11\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-27 21:32:40\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 397821412, "name": "RHI-CN 2.7.8", "prerelease": false, "tag_name": "RHI-CN-2.7.8", "target_commitish": "2feae6da120bcfdc6acb7e96544d154c00cdb44a"}, {"assets": [{"digest": "sha256:68fe0ed8e7767519e6bd2a5d3cede7e86f51fda68237958a28fb768404046853", "id": 586904761, "label": "", "name": "RHI-CN-2.7.6-Setup.exe", "size": 26479515, "state": "uploaded"}, {"digest": "sha256:87d886c3d02390c2268e932072097c644fcfc80d571ab9aa80110de2a92edac7", "id": 586904762, "label": "", "name": "RHI-CN-2.7.6-portable.zip", "size": 38982505, "state": "uploaded"}], "body": "# RHI-CN 2.7.6\\r\\n\\r\\n- Upstream release: RHI-2.7.6\\r\\n- Upstream commit: `10de2bb36b15ce1a056dcd926593559d5698b9df`\\r\\n- Simplified Chinese coverage: 99.68%\\r\\n- English fallback keys: 8\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-24 21:42:10\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 396102021, "name": "RHI-CN 2.7.6", "prerelease": false, "tag_name": "RHI-CN-2.7.6", "target_commitish": "3f8af0f06664a76516f3f3cab635259a7a5fd8bc"}, {"assets": [{"digest": "sha256:0675abd5e3b05dab110cc4b99cca47efda6719e29e82cea465aa1d2a71f6e882", "id": 585273118, "label": "", "name": "RHI-CN-2.7.5-r1-Setup.exe", "size": 26440679, "state": "uploaded"}, {"digest": "sha256:3b0247158ee36531021195ffd3aa642b9151237081b1565dd89b0a4c968058ed", "id": 585273119, "label": "", "name": "RHI-CN-2.7.5-r1-portable.zip", "size": 38944698, "state": "uploaded"}], "body": "# RHI-CN 2.7.5 r1\\r\\n\\r\\n- Upstream release: RHI-2.7.5\\r\\n- Upstream commit: `a94a574515da3a0864f76a6d120dc4957f61e91f`\\r\\n- Application file version: 2.7.5.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-24 06:01:10\\r\\n\\r\\nThis r1 release supersedes the original RHI-CN 2.7.5 release.\\r\\nIt rebuilds the exact upstream RHI-2.7.5 source with the reviewed translations added after the original release.\\r\\nSimplified Chinese coverage is 100% with zero English runtime fallback keys.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 395377722, "name": "RHI-CN 2.7.5 r1", "prerelease": false, "tag_name": "RHI-CN-2.7.5-r1", "target_commitish": "574471e936ec84008213ffe8246d94e9d93264ea"}, {"assets": [{"digest": "sha256:075641db9c669c90bc5b09259c2e286de027bc2d5a49513b92813dacf6af466e", "id": 577553841, "label": "", "name": "RHI-CN-2.7.5-Setup.exe", "size": 26455790, "state": "uploaded"}, {"digest": "sha256:817e0f869be2ebe84304dbf97835d938e634011e5c30a828623b76cdfe41bbf6", "id": 577553844, "label": "", "name": "RHI-CN-2.7.5-portable.zip", "size": 38938674, "state": "uploaded"}], "body": "# RHI-CN 2.7.5\\r\\n\\r\\n- Upstream release: RHI-2.7.5\\r\\n- Upstream commit: `a94a574515da3a0864f76a6d120dc4957f61e91f`\\r\\n- Simplified Chinese coverage: 98.74%\\r\\n- English fallback keys: 31\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-20 21:01:01\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 392572810, "name": "RHI-CN 2.7.5", "prerelease": false, "tag_name": "RHI-CN-2.7.5", "target_commitish": "ee21b7d77971de071db06ee011129e3f763d8670"}, {"assets": [{"digest": "sha256:9e7a17f528b09abc4432a6a1c3543d9ee60f99dcebfa322295c7823025b2cf61", "id": 575477072, "label": "", "name": "RHI-CN-2.7.4-portable.zip", "size": 38934336, "state": "uploaded"}, {"digest": "sha256:aa4ed07dd76852f023a02517c5e089438ed39bb61976aea51ba3f5814a79219a", "id": 575477075, "label": "", "name": "RHI-CN-2.7.4-Setup.exe", "size": 26439971, "state": "uploaded"}], "body": "# RHI-CN 2.7.4\\r\\n\\r\\n- Upstream release: RHI-2.7.4\\r\\n- Upstream commit: `fa0e9793acc4fcf191937b7e9c0d15769e3799ce`\\r\\n- Simplified Chinese coverage: 98.78%\\r\\n- English fallback keys: 30\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-19 20:56:08\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 392211985, "name": "RHI-CN 2.7.4", "prerelease": false, "tag_name": "RHI-CN-2.7.4", "target_commitish": "9f2d200872b76e29f3be93d832f1f03e6aaf85e9"}, {"assets": [{"digest": "sha256:da7b63b817122660edf889dad93c62f085aa889d00773ced119aaba3d011c6e1", "id": 568840317, "label": "", "name": "RHI-CN-2.7.2-Setup.exe", "size": 26425910, "state": "uploaded"}, {"digest": "sha256:2f86d8d13376e195dfda24486ac01693c9655153bc12659af7e46f0c55cd1e31", "id": 568840318, "label": "", "name": "RHI-CN-2.7.2-portable.zip", "size": 38905718, "state": "uploaded"}], "body": "# RHI-CN 2.7.2\\r\\n\\r\\n- Upstream release: RHI-2.7.2\\r\\n- Upstream commit: `835d06ba0595bb8fcd8fe63da3e0c5d0f0dc690f`\\r\\n- Simplified Chinese coverage: 99.71%\\r\\n- English fallback keys: 7\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-16 21:33:26\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 390289241, "name": "RHI-CN 2.7.2", "prerelease": false, "tag_name": "RHI-CN-2.7.2", "target_commitish": "ad874abbc70c9dfa6598c5afc59b3bb4b9e81309"}, {"assets": [{"digest": "sha256:553fc3dc40ca6acf9787829a1c41c5d1aadb5ccb32c733ae35ec91f8295a9254", "id": 564841103, "label": "", "name": "RHI-CN-2.7.1-Setup.exe", "size": 26419313, "state": "uploaded"}, {"digest": "sha256:93df2c837f33aba3bbd4ddf2aed8753053326a71fc5a3a1e217d37e4b63d71ca", "id": 564841108, "label": "", "name": "RHI-CN-2.7.1-portable.zip", "size": 38888432, "state": "uploaded"}], "body": "# RHI-CN 2.7.1\\r\\n\\r\\n- Upstream release: RHI-2.7.1\\r\\n- Upstream commit: `f9531b98234335230ea0b157c3d4ef3842858940`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-15 04:03:23\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388859417, "name": "RHI-CN 2.7.1", "prerelease": false, "tag_name": "RHI-CN-2.7.1", "target_commitish": "c5d40d790023a1310634a04f44ec6bf5ff81dee7"}, {"assets": [{"digest": "sha256:6716090d9ed1efcfa90e37335b8205d8040fc3d8988353cb78c40905e1e6f3c0", "id": 564525737, "label": "", "name": "RHI-CN-2.7.0-r5-Setup.exe", "size": 26380586, "state": "uploaded"}, {"digest": "sha256:a8d115e1d1d25f56172215956f37a65e903e8daa6bc7e9aeb2ee63a5a40b9d0e", "id": 564525738, "label": "", "name": "RHI-CN-2.7.0-r5-portable.zip", "size": 38842270, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r5\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Application file version: 2.7.0.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-15 00:28:39\\r\\n\\r\\nThis r5 release supersedes RHI-CN 2.7.0 r4.\\r\\nIt includes the R4 settings ComboBox stability fix, Tooltip localization fix for mixed ternary/interpolated expressions, and the reviewed runtime fallback cleanup.\\r\\nCI now enforces zero English runtime fallback so missing translations cannot pass silently.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388791436, "name": "RHI-CN 2.7.0 r5", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r5", "target_commitish": "e9dcd40893a13380b96eb9cabac0c8bd33c30166"}, {"assets": [{"digest": "sha256:01674d4b2330ce91f5cc77ca352755d24ec4aab394e21585993b138c78d316d9", "id": 563489568, "label": "", "name": "RHI-CN-2.7.0-r4-Setup.exe", "size": 26369684, "state": "uploaded"}, {"digest": "sha256:a8326fa8e2fee9912a490854c20dba60655d8f93480c6b65ee9ad19e33e5db5d", "id": 563489572, "label": "", "name": "RHI-CN-2.7.0-r4-portable.zip", "size": 38813386, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r4\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Application file version: 2.7.0.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-14 13:49:26\\r\\n\\r\\nThis r4 release supersedes RHI-CN 2.7.0 r3.\\r\\nIt closes remaining runtime-visible English localization gaps in dynamic status/action text, inclusion controls, addon controls, combo-box display values, RTX 40 MFG guidance, and other runtime-generated labels.\\r\\nIt also hardens dynamic Text localization so method calls and ternary/control expressions are not corrupted by the transform.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388434996, "name": "RHI-CN 2.7.0 r4", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r4", "target_commitish": "3844779b0f6a48c80cf5878b39661f2a89ddad06"}, {"assets": [{"digest": "sha256:709b96e3d2209bea0fb641a22d7bf45e0340825a9eba78fd5233124cb1ae373d", "id": 562321404, "label": "", "name": "RHI-CN-2.7.0-r3-portable.zip", "size": 38800643, "state": "uploaded"}, {"digest": "sha256:2005d284ddb21c5adafacb2d94f7d8e8b3d221629b6a961e4a91c3573e72bef4", "id": 562321406, "label": "", "name": "RHI-CN-2.7.0-r3-Setup.exe", "size": 26351634, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r3\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Application file version: 2.7.0.0\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-14 01:45:48\\r\\n\\r\\nThis r3 release supersedes RHI-CN 2.7.0 r2.\\r\\nIt corrects the application version metadata from 2.6.9.0 to 2.7.0.0 and expands Simplified Chinese localization for runtime-generated UI, including Quick Start/FAQ content, view mode labels, combo-box display values, action/status text, and tooltips.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 388102751, "name": "RHI-CN 2.7.0 r3", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r3", "target_commitish": "e84fa63b13b1f40685b459c2dbf079450b090425"}, {"assets": [{"digest": "sha256:418ef16a3cbc90991ca383f99874e18b17e3a03653eab507ff53a0775c8c272c", "id": 561446892, "label": "", "name": "RHI-CN-2.7.0-r2-portable.zip", "size": 38677869, "state": "uploaded"}, {"digest": "sha256:c0ce972e757c53865826fda7bd0a3db7bf8638d0e112f983553b43b6a6655e95", "id": 561446893, "label": "", "name": "RHI-CN-2.7.0-r2-Setup.exe", "size": 26307321, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r2\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-13 15:30:36\\r\\n\\r\\nThis r2 release supersedes RHI-CN 2.7.0 r1. It fixes the startup failure after first-launch setup caused by assigning WinUI3Localizer Uids.Uid to the WinUI 3 root Window.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 387943203, "name": "RHI-CN 2.7.0 r2", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r2", "target_commitish": "5d77b417e0c7008eee0bb012e47fac65f3ae66bc"}, {"assets": [{"digest": "sha256:a375f59835aa7d36aa2a55174511d58b6b19b47ebbad72dfc97bca96e5827c62", "id": 561253115, "label": "", "name": "RHI-CN-2.7.0-r1-Setup.exe", "size": 26305620, "state": "uploaded"}, {"digest": "sha256:dc30290be87ac178413f65ee94d34ea7b31657d269aad388d1ecd9d179cacb58", "id": 561253116, "label": "", "name": "RHI-CN-2.7.0-r1-portable.zip", "size": 38678160, "state": "uploaded"}], "body": "# RHI-CN 2.7.0 r1\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Simplified Chinese coverage: 100%\\r\\n- English fallback keys: 0\\r\\n- Unhandled C# UI strings: 0\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-13 13:20:09\\r\\n\\r\\nThis r1 release supersedes RHI-CN 2.7.0 (99.69% coverage). It is rebuilt from the same official RHI-2.7.0 tag with the three formal-tag-only strings translated.\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 387906849, "name": "RHI-CN 2.7.0 r1", "prerelease": false, "tag_name": "RHI-CN-2.7.0-r1", "target_commitish": "4c30debb20fc0c762f4dae85ba46d03913b90fb2"}, {"assets": [{"digest": "sha256:71f0499c2fc6e0a836f89873c8d99b56a0cbda721d00be55d83e287a4f634b80", "id": 561129195, "label": "", "name": "RHI-CN-2.7.0-portable.zip", "size": 38677979, "state": "uploaded"}, {"digest": "sha256:6cc08dc6b858b52c631d19d1c5894ff05db4888d8040a07e45b6c0af2c7ed0a0", "id": 561129196, "label": "", "name": "RHI-CN-2.7.0-Setup.exe", "size": 26317034, "state": "uploaded"}], "body": "# RHI-CN 2.7.0\\r\\n\\r\\n- Upstream release: RHI-2.7.0\\r\\n- Upstream commit: `a64cb55453a0afeb4162ca5371ddb048b2297b29`\\r\\n- Simplified Chinese coverage: 99.69%\\r\\n- English fallback keys: 3\\r\\n- Inno Setup: 6.7.1\\r\\n- Chinese installer translation commit: `1ff90acc4ed4aee82b1cda43253243deee3daed4`\\r\\n- Chinese installer translation SHA-256: `bf0751fa176569c6faa2f6e17ed2734617bef325d5cc06eae030fdd0258ee778`\\r\\n- Build date (UTC): 2026-09-13 11:51:00\\r\\n\\r\\nThis is an unofficial Simplified Chinese build. Core RHI functionality remains upstream RHI.\\r\\n", "draft": false, "id": 387883650, "name": "RHI-CN 2.7.0", "prerelease": false, "tag_name": "RHI-CN-2.7.0", "target_commitish": "4df2b4b7f59359f49a83325edd63d8c155619d4e"}], "patch": {"body": "## \\u7248\\u672c\\u8bf4\\u660e\\n\\u672c\\u8f6e\\u57fa\\u4e8e\\u4e0a\\u6e38 2.8.9 Beta 2\\u3002\\u4e0a\\u6e38\\u7a0b\\u5e8f\\u96c6/\\u5b89\\u88c5\\u5668\\u5185\\u90e8\\u7248\\u672c\\u4ecd\\u663e\\u793a 2.8.8\\uff0c\\u672c\\u6b21\\u4ec5\\u7ea0\\u6b63\\u5916\\u90e8\\u4e0b\\u8f7d\\u540d\\uff0c\\u4e8c\\u8fdb\\u5236\\u672a\\u4fee\\u6539\\uff1b\\u8fd9\\u4e0d\\u662f\\u65e7\\u7684 2.8.8 \\u6b63\\u5f0f\\u6784\\u5efa\\u3002\\n\\n\\u6c49\\u5316\\u66f4\\u65b0\\u6807\\u8bc6\\uff1a2026-11-01\\uff08\\u5317\\u4eac\\u65f6\\u95f4\\uff09\\u3002\\u8fd9\\u662f\\u540c\\u4e00\\u6279\\u5df2\\u6784\\u5efa\\u3001\\u5df2\\u9a8c\\u6536\\u6587\\u4ef6\\u7684\\u547d\\u540d\\u4e0e\\u53d1\\u5e03\\u72b6\\u6001\\u4fee\\u6b63\\uff0c\\u6ca1\\u6709\\u91cd\\u65b0\\u7f16\\u8bd1\\u3001\\u91cd\\u6253\\u5305\\u6216\\u4fee\\u6539\\u7a0b\\u5e8f\\u5185\\u5bb9\\u3002\\n\\n## \\u4e0b\\u8f7d\\u4e0e\\u6821\\u9a8c\\n\\u8bf7\\u6309\\u6587\\u4ef6\\u540d\\u4e2d\\u7684\\u4ea7\\u54c1\\u7248\\u672c\\u548c\\u5305\\u7c7b\\u578b\\u4e0b\\u8f7d\\uff1b\\u4f7f\\u7528\\u9644\\u4ef6 **CURRENT-DOWNLOAD-SHA256SUMS.txt** \\u6821\\u9a8c\\u5f53\\u524d\\u4e0b\\u8f7d\\u6587\\u4ef6\\u3002\\n\\u539f\\u59cb SHA256SUMS\\u3001provenance.json\\u3001build-metadata.json\\uff08\\u5982\\u6709\\uff09\\u53ca .sha256\\uff08\\u5982\\u6709\\uff09\\u5747\\u539f\\u6837\\u4fdd\\u7559\\uff0c\\u662f\\u521d\\u6b21\\u6784\\u5efa/\\u53d1\\u5e03\\u7684\\u5386\\u53f2\\u8bc1\\u636e\\uff0c\\u53ef\\u80fd\\u5f15\\u7528\\u65e7\\u6587\\u4ef6\\u540d\\u6216\\u521d\\u6b21\\u5019\\u9009\\u72b6\\u6001\\uff0c\\u4e0d\\u4f5c\\u4e3a\\u5f53\\u524d\\u547d\\u540d\\u8bf4\\u660e\\u3002\\n\\n## \\u9a8c\\u8bc1\\u8303\\u56f4\\nWindows CI\\u3001\\u81ea\\u52a8\\u6d4b\\u8bd5\\u3001\\u5305\\u5b8c\\u6574\\u6027\\u53ca\\u54c8\\u5e0c\\u68c0\\u67e5\\u5df2\\u901a\\u8fc7\\u3002\\u5c1a\\u672a\\u8fdb\\u884c\\u771f\\u5b9e\\u6e38\\u620f\\u3001GPU \\u6216 GUI \\u89c6\\u89c9\\u8fd0\\u884c\\u9a8c\\u8bc1\\uff1b\\u6b63\\u5f0f\\u6c49\\u5316\\u53d1\\u5e03\\u4e0d\\u8868\\u793a\\u627f\\u8bfa\\u6240\\u6709\\u6e38\\u620f\\u517c\\u5bb9\\uff0c\\u4e5f\\u4e0d\\u8868\\u793a\\u6240\\u6709\\u52a8\\u6001\\u6587\\u672c\\u5df2\\u4eba\\u5de5\\u9010\\u5c4f\\u6838\\u9a8c\\u3002\\n\\n## \\u6587\\u4ef6\\u540d\\u5bf9\\u7167\\n- `RHI-CN-2.8.8-Setup.exe` \\u2192 `RHI-CN-v2.8.9-beta2-zh20261101-Setup.exe`\\n- `RHI-CN-2.8.8-portable.zip` \\u2192 `RHI-CN-v2.8.9-beta2-zh20261101-portable.zip`\\n\\nRelease \\u9875\\u9762\\u3001\\u6807\\u7b7e\\u3001\\u6e90\\u4ee3\\u7801\\u63d0\\u4ea4\\u53ca\\u539f\\u6709\\u6587\\u4ef6 asset ID \\u4fdd\\u6301\\u4e0d\\u53d8\\uff1b\\u4e0b\\u8f7d\\u6587\\u4ef6\\u6539\\u540d\\u540e\\uff0c\\u65e7\\u6587\\u4ef6\\u540d\\u7684\\u76f4\\u63a5\\u4e0b\\u8f7d\\u94fe\\u63a5\\u53ef\\u80fd\\u5931\\u6548\\uff0c\\u8bf7\\u4ece\\u672c\\u53d1\\u5e03\\u9875\\u4f7f\\u7528\\u65b0\\u94fe\\u63a5\\u3002\\u6807\\u7b7e\\u4e2d\\u7684 candidate \\u662f\\u4fdd\\u7559\\u7684\\u5386\\u53f2\\u5b9a\\u4f4d\\u7b26\\uff0c\\u5f53\\u524d\\u53d1\\u5e03\\u6027\\u8d28\\u4ee5\\u672c\\u9875\\u6807\\u8bb0\\u548c\\u7248\\u672c\\u8bf4\\u660e\\u4e3a\\u51c6\\u3002\\u65e7\\u7248\\u53d1\\u5e03\\u4e0e\\u9644\\u4ef6\\u672a\\u4fee\\u6539\\u3002\\n\\n## \\u6784\\u5efa\\u6765\\u6e90\\n- \\u6c49\\u5316\\u6e90\\u63d0\\u4ea4\\uff1a`9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2`\\n- \\u5b9e\\u9645 CI checkout\\uff1a`e379a050cdb6d3be001be583b1e9b6adc71f8ce0`\\n- \\u6e90\\u7801\\u6811\\uff1a`e58a431e321a93cc579d03b95e0cbaefaa1aa84e`\\n- \\u4e0a\\u6e38\\u63d0\\u4ea4\\uff1a`7c8eee421d9d0d5c47e7b89425f46371b282d088`\\n", "draft": false, "make_latest": "false", "name": "RHI CN 2.8.9 Beta 2 \\u00b7 \\u6c49\\u5316\\u66f4\\u65b0 2026-11-01", "prerelease": true}, "publish_branch": "release-metadata/20261101-9dcf8d25", "release": {"assets": [{"digest": "sha256:b801b4ab653b823629b7b5f3a091335c199bdd89b6c1beec8fa251144c033184", "id": 695978810, "label": "", "name": "RHI-CN-2.8.8-Setup.exe", "size": 44102489, "state": "uploaded"}, {"digest": "sha256:b6fe9afabccb6d6b8d8069440a3b8d530a7794403d3cfb6ff5674e8aaf9f5c3a", "id": 695978905, "label": "", "name": "RHI-CN-2.8.8-portable.zip", "size": 66278257, "state": "uploaded"}, {"digest": "sha256:a6ff5b394e50a4cf28702e8224324139ed89e0c2d32faf6605fb8806fe3656a1", "id": 695979013, "label": "", "name": "provenance.json", "size": 3000, "state": "uploaded"}, {"digest": "sha256:ca1fe3062f9b5d0726c6bb54f23ead5de28f498d529e1d831e7ee3bf53c4cea2", "id": 695979039, "label": "", "name": "SHA256SUMS", "size": 263, "state": "uploaded"}], "body": "Candidate prerelease of reviewed localization maintenance; not a stable release.\\nSource: 9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2\\nActual CI checkout: e379a050cdb6d3be001be583b1e9b6adc71f8ce0\\nCommon tree: e58a431e321a93cc579d03b95e0cbaefaa1aa84e\\nUpstream: 7c8eee421d9d0d5c47e7b89425f46371b282d088\\nWindows CI and package checks passed. Game/GPU/UI visual runtime validation not performed.\\nNo previous release is replaced.\\nIMPORTANT: upstream main is 2.8.9 Beta 2, but upstream AssemblyVersion and installer/portable filenames still say 2.8.8. These files are main-branch candidates, NOT a stable RHI 2.8.8 build.\\n", "draft": false, "id": 430073881, "name": "RHI-CN 2026-10-31 candidate 9dcf8d25", "prerelease": true, "tag_name": "cn-candidate-20261031-9dcf8d25", "target_commitish": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2"}, "repository": "Night-SHANG/RHI-CN", "runs": [{"head_sha": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2", "id": 41220668057, "run_attempt": 1}, {"head_sha": "9dcf8d25c05377d727bde0fb3e89c47c3d30fcf2", "id": 41220668059, "run_attempt": 1}], "workflow_path": ".github/workflows/correct-release-metadata-20261101.yml"}')
+          try:
+           correction_main(MANIFEST,'correct')
+          except Stop as ex:
+           print(str(ex),file=sys.stderr)
+           sys.exit(1)
+          PY
