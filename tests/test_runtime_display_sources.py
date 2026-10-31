@@ -86,3 +86,134 @@ def test_items_add_display_string_is_collected_as_runtime_data():
     out, entries = transform_csharp(src, "MainWindow.Events.cs")
     assert 'Items.Add("On")' in out and 'Items.Add("Off")' in out
     assert {"On", "Off"}.issubset(set(entries.values()))
+
+
+def test_compact_cog_help_is_localized_at_display_boundary():
+    for path, expr in [("CogDialog.cs", "help"),
+                       ("MainWindow.Events.Components.OptiScaler.cs", "cell.Help"),
+                       ("MainWindow.Events.Components.Rdx.cs", "cell.Help")]:
+        out, _ = transform_csharp(f'ToolTipService.SetToolTip(label, {expr});', path)
+        assert f'LocalizationService.GetDataString({expr})' in out
+
+
+def test_compact_cog_literals_collected_without_changing_ini_logic():
+    src = '''var c = OsComboCell(cog, "FG Enabled", "Turns FG on. " + "Auto leaves it off.", items, 0, f);
+var r = new RdxCompatCell("Mode", "Saved in INI.", items, 0, f);
+var o = new OsCell("Version", "Choose a version.", combo);
+var technical = ReadIni("FrameGen", "Enabled", "false");'''
+    out, entries = transform_csharp(src, "MainWindow.Events.Components.OptiScaler.cs")
+    assert out == src
+    assert {'FG Enabled', 'Turns FG on. Auto leaves it off.', 'Mode', 'Saved in INI.', 'Version', 'Choose a version.'} <= set(entries.values())
+    assert 'FrameGen' not in entries.values()
+
+
+def test_cog_combo_sources_and_header_display():
+    src = 'cog.AddCombo("Variant", "Choose variant.", items, 0, f); cog.AddSection("Advanced"); var t = new TextBlock { Text = header };'
+    out, entries = transform_csharp(src, 'CogDialog.cs')
+    assert {'Variant', 'Choose variant.', 'Advanced'} <= set(entries.values())
+    assert 'GetDataString(header)' in out
+
+
+def test_target_typed_cog_combo_preserves_values_and_localizes_display():
+    src = 'public static ComboBox MakeCombo(IList<string> items, int selectedIndex, bool isEnabled = true) => new() { ItemsSource = items, SelectedIndex = selectedIndex };'
+    out, _ = transform_csharp(src, 'CogDialog.cs')
+    assert 'ItemTemplate = RenoDXCommander.Services.LocalizationService.ComboBoxItemTemplate' in out
+    assert 'ItemsSource = items' in out
+
+
+def test_settings_search_count_formats_are_localized():
+    src = 'string countText = matches.Count switch { 0 => $"No settings match \\"{q}\\"", 1 => $"1 setting matches \\"{q}\\"", _ => $"{matches.Count} settings match \\"{q}\\"" }; countText += $". Showing the first {MaxSearchResults}; keep typing to narrow it down.";'
+    out, entries = transform_csharp(src, 'SettingsHandler.Navigation.cs')
+    assert out.count('LocalizationService.Format') == 4
+    assert 'No settings match "{0}"' in entries.values()
+
+
+def test_cog_string_buttons_are_localized_but_elements_are_not():
+    src = 'Content = text; Content = content; Title = _title; CloseButtonText = _closeText; dlg.PrimaryButtonText = _primaryText;'
+    out, _ = transform_csharp(src, 'CogDialog.cs')
+    assert 'Content = content' in out
+    for value in ('text', '_title', '_closeText', '_primaryText'):
+        assert f'GetDataString({value})' in out
+
+
+def test_accessibility_name_is_localized():
+    src = 'Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_searchBox, "Find a setting");'
+    out, entries = transform_csharp(src, 'SettingsHandler.Navigation.cs')
+    assert 'AutomationProperties.SetName(_searchBox, RenoDXCommander.Services.LocalizationService.GetString(' in out
+    assert list(entries.values()) == ['Find a setting']
+
+
+def test_new_faq_literals_are_collected_without_translating_brush_keys():
+    src = 'private void BuildFaqContent() { BuildFaqSection(null, "Welcome", "AccentTealBrush", "New guide."); } private void Helper() {}'
+    out, entries = transform_csharp(src, 'MainWindow.FaqBuilder.cs')
+    assert {'Welcome', 'New guide.'} <= set(entries.values())
+    assert 'AccentTealBrush' not in entries.values()
+    assert out == src
+
+
+def test_countdown_return_values_localized_with_english_fallback():
+    src = 'if (last == null) return "Not yet"; return $"{ago.Minutes:00}m ago";'
+    out, entries = transform_csharp(src, 'SettingsHandler.UpdateCountdown.cs')
+    assert 'LocalizationService.GetString' in out
+    assert 'LocalizationService.Format' in out
+    assert 'Not yet' in entries.values()
+    assert '$"{ago.Minutes:00}"' in out
+
+
+def test_cog_editable_text_remains_untranslated():
+    src = 'public static TextBox MakeTextBox(string text = "", string? placeholder = null) => new() { Text = text, PlaceholderText = placeholder ?? "" };'
+    out, _ = transform_csharp(src, 'CogDialog.cs')
+    assert 'Text = text,' in out
+    assert 'GetDataString(placeholder)' in out
+
+
+def test_dynamic_cog_title_localizes_suffix_not_stored_title():
+    out, entries = transform_csharp('Title = _title,', 'CogDialog.cs')
+    assert '_title[..^9]' in out
+    assert '{0} Settings' in entries.values()
+
+
+def test_compatibility_help_formats_preserve_ini_key_argument():
+    out, entries = transform_csharp('var help = $"Saved as {setting.Key} in reshade.ini.";', 'MainWindow.Events.Components.Rdx.cs')
+    assert 'LocalizationService.Format' in out
+    assert 'Saved as {0} in reshade.ini.' in entries.values()
+    assert '$"{setting.Key}"' in out
+
+
+def test_settings_search_query_is_user_data_not_translation_source():
+    src = 'string countText = matches.Count switch { 0 => $"No settings match \\"{q}\\"", 1 => $"1 setting matches \\"{q}\\"", _ => $"{matches.Count} settings match \\"{q}\\"" };'
+    out, _ = transform_csharp(src, 'SettingsHandler.Navigation.cs')
+    assert out.count('LocalizationService.Format') == 3
+    assert 'GetDataString($"{q}")' not in out
+    assert out.count('$"{q}"') == 3
+
+
+def test_faq_vulkan_path_preserves_single_windows_separators():
+    import json
+    from pathlib import Path
+    memory = json.loads((Path(__file__).parents[1] / 'Localization' / 'translation-memory.json').read_text(encoding='utf-8'))
+    source = next(key for key in memory if key.startswith('Vulkan games (shown with a VLK badge)'))
+    translated = memory[source]['translation']
+    assert r'C:\ProgramData\ReShade' in translated
+    assert translated.count('\\') == source.count('\\') == 2
+
+
+def test_new_cog_help_keeps_ini_key_verbatim():
+    for expr in ('kv.Key', 'setting.Key'):
+        out, _ = transform_csharp(f'var help = $"Saved as {{{expr}}} in reshade.ini.";', 'MainWindow.Events.Components.Rdx.cs')
+        assert f'GetDataString($"{{{expr}}}")' not in out
+        assert f'$"{{{expr}}}"' in out
+
+
+def test_addon_folder_error_keeps_user_path_verbatim():
+    src = 'Content = $"\\"{typed}\\" doesn\'t exist. The addon watch folder was not changed.";'
+    out, _ = transform_csharp(src, 'MainWindow.Events.SettingsInputs.cs')
+    assert 'LocalizationService.Format' in out
+    assert 'GetDataString($"{typed}")' not in out
+
+
+def test_resource_upgrade_specific_help_is_localized():
+    src = 'string? specific = isResourceUpgrade ? $"Upgrades {labelText} textures to an HDR format. Output size and Output ratio only upgrade textures matching the screen size or aspect ratio; Any size upgrades all of them." : null;'
+    out, entries = transform_csharp(src, 'MainWindow.Events.Components.Rdx.cs')
+    assert 'LocalizationService.Format' in out
+    assert any(value.startswith('Upgrades {0} textures') for value in entries.values())

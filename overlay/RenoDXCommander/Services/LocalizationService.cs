@@ -127,7 +127,10 @@ public static class LocalizationService
         try
         {
             var value = Localizer.Get().GetLocalizedString(key);
-            return string.IsNullOrWhiteSpace(value) ? fallback : value;
+            // WinUI Localizer can return the requested resource key when no dictionary
+            // is loaded or a key is missing; that is not a user-visible translation.
+            return string.IsNullOrWhiteSpace(value) || string.Equals(value, key, StringComparison.Ordinal)
+                ? fallback : value;
         }
         catch
         {

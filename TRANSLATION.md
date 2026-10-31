@@ -82,3 +82,9 @@ Complex interpolated UI strings are reported and baselined rather than guessed. 
 ## Manifest-backed text
 
 RHI displays a small subset of `manifest.json` as UI. RHI-CN extracts `installWarnings` and the user-facing `notes` / `notesUrlLabel` fields from known game-note containers. These values receive deterministic `Data_<SHA-256 prefix>` resource keys and are resolved through `LocalizationService.GetDataString()`. URLs, game names, DLL names, paths, configuration keys, internal IDs and other technical manifest fields are never rewritten.
+
+## Upstream UI architecture review
+
+Do not treat generated-resource coverage as proof that all UI is translated. In particular, a new helper or a target-typed `new()` control can bypass old extractors. For each upstream UI change, inspect the original XAML/C# diff alongside the materialized output. Check text sources **and** display boundaries, including helper arguments, tooltips, accessibility labels, switch-expression counters, FAQ data, and ComboBox factories. Preserve program values and editable TextBox contents; translate only presentation.
+
+The 2026-10-31 review and pending Windows verification are documented in [the maintenance report](docs/maintenance-2026-10-31.md).

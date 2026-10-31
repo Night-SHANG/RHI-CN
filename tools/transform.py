@@ -21,7 +21,7 @@ UI_ASSIGN_PROPS = (
 )
 UI_CALLS = (
     "SetStatus", "ShowErrorDialog", "ShowInfoDialog", "NotifyUser",
-    "ShowMessage", "MessageBox.Show",
+    "ShowMessage", "MessageBox.Show", "SetError", "SetSuccess", "cog.AddWarning", "cog.AddIntro", "cog.AddNote",
 )
 
 
@@ -186,6 +186,23 @@ def _collect_runtime_display_sources(text: str) -> dict[str, str]:
         if value.strip() and any(ch.isalpha() for ch in value):
             sources.add(value)
 
+    # Compact cog records keep English labels/help for INI control logic.
+    # Collect only their two display arguments; never translate their stored values.
+    token = r'"(?:[^"\\]|\\.)*"'
+    expression = rf'{token}(?:\s*\+\s*{token})*'
+    cell = re.compile(
+        rf'(?:\bnew\s+(?:OsCell|RdxCompatCell)\s*\(|\bOsComboCell\s*\(\s*\w+\s*,|\bcog\.AddCombo\s*\(|\bAddSetting\s*\()'
+        rf'\s*(?P<label>{expression})\s*,\s*(?P<help>{expression})\s*,', re.S)
+    for match in cell.finditer(text):
+        for field in ("label", "help"):
+            value = "".join(_decode_csharp_string(raw) for raw in literal_re.findall(match.group(field)))
+            if value.strip():
+                sources.add(value)
+
+    for match in re.finditer(rf'\bcog\.(?:AddSection|AddIntro|AddWarning|AddNote|AddEmpty|MakeButton|MakeOpenFileButton|AddRow|SetSuccess)\(\s*(?P<label>{expression})\s*[,)]', text):
+        value = "".join(_decode_csharp_string(raw) for raw in literal_re.findall(match.group("label")))
+        sources.add(value)
+
     return {_data_key(source): source for source in sorted(sources)}
 
 
@@ -336,7 +353,7 @@ def _is_probably_text_expression(expr: str) -> bool:
     if not re.fullmatch(r'(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*', expr):
         return False
     tail = expr.rsplit('.', 1)[-1].lower()
-    exact = {"text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status"}
+    exact = {"text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status", "header"}
     return tail in exact or tail.endswith(("text", "label", "title", "name", "content", "message", "description", "tip", "tooltip", "status"))
 
 
@@ -345,6 +362,18 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
     replacements: list[tuple[int, int, str]] = []
     for start, end, body in _find_interpolated_strings(text):
         context = _interpolated_context(text, start)
+        if relpath == "SettingsHandler.UpdateCountdown.cs" and re.search(r'\breturn\s*$', text[:start]):
+            context = ('property', 'CountdownDisplay')
+        if relpath == "MainWindow.Events.Components.Rdx.cs" and body.startswith((
+            '{specific} Saved as ', 'Saved as {kv.Key}', 'Saved as {setting.Key}',
+            'Upgrades {labelText} textures to an HDR format.')):
+            context = ('property', 'CompatibilityHelp')
+        # The settings search counter is built in a switch, then rendered as Text.
+        # Restrict this exception to its known UI file and exact sentence shapes.
+        if relpath == "SettingsHandler.Navigation.cs" and body.startswith((
+            'No settings match ', '1 setting matches ', '{matches.Count} settings match ',
+            '. Showing the first {MaxSearchResults};')):
+            context = ('property', 'countText')
         if not context:
             continue
         fmt, args, has_english = _split_interpolated_body(body)
@@ -356,8 +385,17 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
         key = _cs_key(relpath, fmt, f'interpolated:{kind}:{name}')
         entries[key] = fmt
         fallback = _encode_csharp_string(fmt)
+        # Preserve actual user input and INI identifiers in the new settings UI.
+        raw_args = {
+            "SettingsHandler.Navigation.cs": {"q"} if name == "countText" else set(),
+            "MainWindow.Events.SettingsInputs.cs": {"typed"},
+            "MainWindow.Events.Components.Rdx.cs": {"kv.Key", "setting.Key"},
+        }.get(relpath, set())
         rendered_args = ', '.join(
-            f'RenoDXCommander.Services.LocalizationService.GetDataString($"{{{expr}}}")'
+            # Data can coincide with an English label without being a label.
+            (f'$"{{{expr}}}"'
+             if expr in raw_args
+             else f'RenoDXCommander.Services.LocalizationService.GetDataString($"{{{expr}}}")')
             for expr in args
         )
         replacement = (
@@ -562,7 +600,7 @@ def _transform_tooltips(text: str, relpath: str) -> tuple[str, dict[str, str]]:
                     )
                     continue
 
-        if re.fullmatch(r'(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*', expr) and _is_probably_text_expression(expr):
+        if re.fullmatch(r'(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*', expr) and (_is_probably_text_expression(expr) or expr in {'help', 'cell.Help'}):
             localized = f'RenoDXCommander.Services.LocalizationService.GetDataString({expr})'
             replacements.append((start, end, f'ToolTipService.SetToolTip({target}, {localized})'))
 
@@ -656,9 +694,23 @@ def _inject_combobox_item_template(text: str) -> str:
 
 def transform_csharp(text: str, relpath: str) -> tuple[str, dict[str, str]]:
     runtime_entries = _collect_runtime_display_sources(text)
+    if relpath == "MainWindow.FaqBuilder.cs":
+        # This method contains documentation literals, never persisted/API values.
+        content = text.split("private void BuildFaqContent()", 1)[-1].split("private ", 1)[0]
+        for raw in re.findall(r'"((?:[^"\\]|\\.)*)"', content):
+            value = _decode_csharp_string(raw)
+            if len(value) > 1 and any(c.isalpha() for c in value) and not value.endswith("Brush") and not re.fullmatch(r"[0-9]+[a-z]", value):
+                runtime_entries[_data_key(value)] = value
     if not _is_ui_file(relpath):
         return text, runtime_entries
     entries: dict[str, str] = dict(runtime_entries)
+    if relpath == "SettingsHandler.UpdateCountdown.cs":
+        def countdown_return(m: re.Match) -> str:
+            value = _decode_csharp_string(m.group(1))
+            key = _cs_key(relpath, value, "CountdownDisplay")
+            entries[key] = value
+            return f'return RenoDXCommander.Services.LocalizationService.GetString("{key}", "{_encode_csharp_string(value)}")'
+        text = re.sub(r'return "((?:[^"\\]|\\.)*)"', countdown_return, text)
     prop_alt = "|".join(map(re.escape, UI_ASSIGN_PROPS))
     text, concat_entries = _transform_concatenated_properties(text, relpath, prop_alt)
     entries.update(concat_entries)
@@ -683,12 +735,44 @@ def transform_csharp(text: str, relpath: str) -> tuple[str, dict[str, str]]:
         fallback = _encode_csharp_string(value)
         return f'{m.group("call")}(RenoDXCommander.Services.LocalizationService.GetString("{key}", "{fallback}"))'
     text = call_re.sub(call_sub, text)
+    def accessibility_sub(m: re.Match) -> str:
+        value = _decode_csharp_string(m.group("value"))
+        key = _cs_key(relpath, value, "AutomationProperties.SetName")
+        entries[key] = value
+        return (m.group("prefix") + f'RenoDXCommander.Services.LocalizationService.GetString("{key}", '
+                + '"' + _encode_csharp_string(value) + '")' + ')')
+    text = re.sub(r'(?P<prefix>AutomationProperties\.SetName\(\s*[^,]+,\s*)"(?P<value>(?:[^"\\]|\\.)*)"\s*\)',
+                  accessibility_sub, text)
     text, tooltip_entries = _transform_tooltips(text, relpath)
     entries.update(tooltip_entries)
     text, interpolated_entries = _transform_interpolated_ui(text, relpath)
     entries.update(interpolated_entries)
     text = _transform_dynamic_text_properties(text)
     text = _inject_combobox_item_template(text)
+    if relpath == "CogDialog.cs":
+        # Known string-valued display boundaries only: Content may also be a UIElement.
+        for prop, value in (("Content", "text"), ("Title", "_title"),
+                            ("CloseButtonText", "_closeText"), ("PrimaryButtonText", "_primaryText")):
+            text = re.sub(rf'\b{prop}\s*=\s*{value}\b',
+                f'{prop} = RenoDXCommander.Services.LocalizationService.GetDataString({value})', text)
+        # Editable text is a program value, not a label. Never translate it.
+        text = re.sub(r'(public static TextBox MakeTextBox\([^)]*\)\s*=>\s*new\(\)\s*\{\s*)Text = RenoDXCommander.Services.LocalizationService.GetDataString\(text\)',
+                      r'\1Text = text', text)
+        text = text.replace('PlaceholderText = placeholder ?? ""',
+            'PlaceholderText = RenoDXCommander.Services.LocalizationService.GetDataString(placeholder)')
+        # The component name is dynamic. Localize the suffix without modifying _title/logs.
+        title_key = _data_key("{0} Settings")
+        entries[title_key] = "{0} Settings"
+        text = text.replace('Title = RenoDXCommander.Services.LocalizationService.GetDataString(_title)',
+            'Title = _title.EndsWith(" Settings", StringComparison.Ordinal) '
+            + '? RenoDXCommander.Services.LocalizationService.Format("' + title_key
+            + '", "{0} Settings", RenoDXCommander.Services.LocalizationService.GetDataString(_title[..^9])) '
+            + ': RenoDXCommander.Services.LocalizationService.GetDataString(_title)')
+        # Upstream's shared factory uses target-typed new(), unlike other controls.
+        text = re.sub(
+            r'(public static ComboBox MakeCombo\([^)]*\)\s*=>\s*new\(\)\s*\{)',
+            r'\1\n        ItemTemplate = RenoDXCommander.Services.LocalizationService.ComboBoxItemTemplate,',
+            text)
     return text, entries
 
 
