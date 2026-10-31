@@ -178,3 +178,21 @@ def test_compatibility_help_formats_preserve_ini_key_argument():
     assert 'LocalizationService.Format' in out
     assert 'Saved as {0} in reshade.ini.' in entries.values()
     assert '$"{setting.Key}"' in out
+
+
+def test_settings_search_query_is_user_data_not_translation_source():
+    src = 'string countText = matches.Count switch { 0 => $"No settings match \\"{q}\\"", 1 => $"1 setting matches \\"{q}\\"", _ => $"{matches.Count} settings match \\"{q}\\"" };'
+    out, _ = transform_csharp(src, 'SettingsHandler.Navigation.cs')
+    assert out.count('LocalizationService.Format') == 3
+    assert 'GetDataString($"{q}")' not in out
+    assert out.count('$"{q}"') == 3
+
+
+def test_faq_vulkan_path_preserves_single_windows_separators():
+    import json
+    from pathlib import Path
+    memory = json.loads((Path(__file__).parents[1] / 'Localization' / 'translation-memory.json').read_text(encoding='utf-8'))
+    source = next(key for key in memory if key.startswith('Vulkan games (shown with a VLK badge)'))
+    translated = memory[source]['translation']
+    assert r'C:\ProgramData\ReShade' in translated
+    assert translated.count('\\') == source.count('\\') == 2

@@ -385,7 +385,10 @@ def _transform_interpolated_ui(text: str, relpath: str) -> tuple[str, dict[str, 
         entries[key] = fmt
         fallback = _encode_csharp_string(fmt)
         rendered_args = ', '.join(
-            f'RenoDXCommander.Services.LocalizationService.GetDataString($"{{{expr}}}")'
+            # Search queries are user input, even when they match a dictionary key.
+            (f'$"{{{expr}}}"'
+             if relpath == "SettingsHandler.Navigation.cs" and name == "countText" and expr == "q"
+             else f'RenoDXCommander.Services.LocalizationService.GetDataString($"{{{expr}}}")')
             for expr in args
         )
         replacement = (
